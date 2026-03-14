@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merck WES IBN Step 1 — Commissioning Dashboard</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f4ef; color: #1a1a18; min-height: 100vh; padding: 1.5rem 1rem; }
+.card { background: #fff; border-radius: 16px; border: 0.5px solid rgba(0,0,0,0.1); padding: 1.5rem; width: 100%; max-width: 920px; margin: 0 auto; }
+h1 { font-size: 16px; font-weight: 500; margin-bottom: 2px; }
+.sub { font-size: 12px; color: #73726c; margin-bottom: 1.25rem; }
+.metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+.metric { background: #f5f4ef; border-radius: 8px; padding: .65rem .85rem; }
+.mlabel { font-size: 11px; color: #73726c; margin-bottom: 3px; }
+.mval { font-size: 22px; font-weight: 500; }
+.section-label { font-size: 11px; font-weight: 500; color: #73726c; text-transform: uppercase; letter-spacing: .05em; margin: 12px 0 6px; }
+.filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.filter-btn { font-size: 11px; padding: 3px 10px; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 20px; background: #fff; color: #73726c; cursor: pointer; }
+.filter-btn.active { background: #E6F1FB; border-color: #378ADD; color: #0C447C; }
+.module-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; margin-bottom: 14px; }
+.mod { border: 0.5px solid rgba(0,0,0,0.08); border-radius: 8px; padding: .55rem .75rem; cursor: pointer; }
+.mod:hover { border-color: rgba(0,0,0,0.18); }
+.mod-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.mod-name { font-size: 12px; font-weight: 500; }
+.mod-owner { font-size: 10px; color: #888780; margin-top: 2px; }
+.mod-bar { height: 3px; border-radius: 2px; margin-top: 5px; background: #f0efe9; overflow: hidden; }
+.mod-fill { height: 100%; border-radius: 2px; }
+.pill { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+.pill.done { background: #E1F5EE; color: #085041; }
+.pill.active { background: #E6F1FB; color: #0C447C; }
+.pill.risk { background: #FAEEDA; color: #633806; }
+.pill.onsite { background: #EEEDFE; color: #26215C; }
+.timeline { display: grid; gap: 4px; margin-bottom: 14px; }
+.trow { display: flex; align-items: center; gap: 8px; }
+.tdate { font-size: 11px; color: #73726c; min-width: 72px; font-weight: 500; }
+.tbar-wrap { flex: 1; height: 20px; background: #f5f4ef; border-radius: 4px; overflow: hidden; }
+.tbar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; }
+.tbar-label { font-size: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+.detail { border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; padding: .8rem 1rem; margin-bottom: 14px; }
+.detail-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+.detail-row { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; border-bottom: 0.5px solid rgba(0,0,0,0.06); color: #73726c; }
+.detail-row:last-child { border-bottom: none; }
+.detail-val { font-weight: 500; color: #1a1a18; max-width: 200px; text-align: right; }
+.footer { margin-top: 1rem; font-size: 10px; color: #888780; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Merck WES IBN Step 1 — Commissioning Dashboard</h1>
+  <p class="sub">D9 · 13 March 2026 · v6.0 · On-site Week 1: <strong>23.3</strong> · AutoStore Week 2: <strong>13.4</strong> · Life Science Lab Hub Logistik · Darmstadt</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="mlabel">Done</div><div class="mval" style="color:#0F6E56">22</div></div>
+    <div class="metric"><div class="mlabel">In progress</div><div class="mval" style="color:#185FA5">12</div></div>
+    <div class="metric"><div class="mlabel">At risk</div><div class="mval" style="color:#854F0B">5</div></div>
+    <div class="metric"><div class="mlabel">On-site deferred</div><div class="mval" style="color:#534AB7">3</div></div>
+  </div>
+
+  <div class="section-label">Module status — click any card for detail</div>
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all')">All modules</button>
+    <button class="filter-btn" onclick="setFilter('done')">Done</button>
+    <button class="filter-btn" onclick="setFilter('active')">In progress</button>
+    <button class="filter-btn" onclick="setFilter('risk')">At risk</button>
+    <button class="filter-btn" onclick="setFilter('onsite')">On-site deferred</button>
+  </div>
+  <div class="module-grid" id="moduleGrid"></div>
+  <div class="detail" id="detailPanel" style="display:none">
+    <div class="detail-title" id="detailTitle"></div>
+    <div id="detailRows"></div>
+  </div>
+
+  <div class="section-label">Phase timeline — v6.0 rescheduled</div>
+  <div class="timeline">
+    <div class="trow"><div class="tdate">3–13.3</div><div class="tbar-wrap"><div class="tbar" style="background:#E1F5EE"><span class="tbar-label" style="color:#085041">Remote prep · Phase 1+2 · DONE</span></div></div></div>
+    <div class="trow"><div class="tdate">14–22.3</div><div class="tbar-wrap"><div class="tbar" style="background:#FAEEDA"><span class="tbar-label" style="color:#633806">Extended remote sprint — P0 runway</span></div></div></div>
+    <div class="trow"><div class="tdate">22.3</div><div class="tbar-wrap"><div class="tbar" style="background:#FCEBEB"><span class="tbar-label" style="color:#791F1F">Pre-departure gate (Sun)</span></div></div></div>
+    <div class="trow"><div class="tdate">23.3 Mon</div><div class="tbar-wrap"><div class="tbar" style="background:#E6F1FB"><span class="tbar-label" style="color:#0C447C">On-site setup + BFT connections</span></div></div></div>
+    <div class="trow"><div class="tdate">24.3 Tue</div><div class="tbar-wrap"><div class="tbar" style="background:#E6F1FB"><span class="tbar-label" style="color:#0C447C">Palettenlager happy path tests</span></div></div></div>
+    <div class="trow"><div class="tdate">25.3 Wed</div><div class="tbar-wrap"><div class="tbar" style="background:#E6F1FB"><span class="tbar-label" style="color:#0C447C">PL NIO + LAM faults + Lift NW/NO</span></div></div></div>
+    <div class="trow"><div class="tdate">26.3 Thu</div><div class="tbar-wrap"><div class="tbar" style="background:#E6F1FB"><span class="tbar-label" style="color:#0C447C">Lift SW/SO + Spülküche</span></div></div></div>
+    <div class="trow"><div class="tdate">27.3 Fri</div><div class="tbar-wrap"><div class="tbar" style="background:#FAEEDA"><span class="tbar-label" style="color:#633806">Week 1 gate + AutoStore go/no-go</span></div></div></div>
+    <div class="trow"><div class="tdate">28.3–12.4</div><div class="tbar-wrap"><div class="tbar" style="background:#f5f4ef"><span class="tbar-label" style="color:#888780">Buffer window — remote consolidation</span></div></div></div>
+    <div class="trow"><div class="tdate">13.4 Mon</div><div class="tbar-wrap"><div class="tbar" style="background:#EEEDFE"><span class="tbar-label" style="color:#26215C">AutoStore IBN · Week 2 start</span></div></div></div>
+    <div class="trow"><div class="tdate">14–16.4</div><div class="tbar-wrap"><div class="tbar" style="background:#EEEDFE"><span class="tbar-label" style="color:#26215C">Grid fill · picking · FTF simulation · NIO</span></div></div></div>
+    <div class="trow"><div class="tdate">17.4 Fri</div><div class="tbar-wrap"><div class="tbar" style="background:#FCEBEB"><span class="tbar-label" style="color:#791F1F">Final sign-off</span></div></div></div>
+  </div>
+
+  <div class="footer">Merck WES IBN Step 1 · v6.0 · Macrix / LogisQ-WES · BSS 1.2.24.027.0066.A · On-site W1: 23.3 · AutoStore W2: 13.4 · Sign-off: 17.4</div>
+</div>
+
+<script>
+const MODULES = [
+  { name:'XyronQ event bug', owner:'Michno', status:'done', pct:100, note:'Fixed D1' },
+  { name:'Planning & alignment', owner:'All', status:'done', pct:100, note:'D1 complete' },
+  { name:'WMS/MFC event unification', owner:'Pietrzak+', status:'done', pct:100, note:'Done D3' },
+  { name:'Type system + IntEvents', owner:'XQ team', status:'done', pct:100, note:'Validated D3' },
+  { name:'Staging environment', owner:'Michno', status:'done', pct:100, note:'Ready D4' },
+  { name:'Max retry policy', owner:'Team', status:'done', pct:100, note:'Done D5' },
+  { name:'RP telegram plan + approval', owner:'Walczak', status:'done', pct:100, note:'BO approved 6.3' },
+  { name:'RP telegram impl (E2E)', owner:'Walczak', status:'done', pct:100, note:'Done D8' },
+  { name:'RP telegram P0', owner:'Walczak', status:'done', pct:100, note:'Complete D9' },
+  { name:'EOT ExecutionOrderType', owner:'XQ team', status:'done', pct:100, note:'Done D5' },
+  { name:'Switch process block', owner:'XQ team', status:'done', pct:100, note:'Done D4' },
+  { name:'End process block', owner:'XQ team', status:'done', pct:100, note:'Done D4' },
+  { name:'Telegram viewer', owner:'HMI/MFC', status:'done', pct:100, note:'Done D5' },
+  { name:'Multi-event filter support', owner:'XQ', status:'done', pct:100, note:'Done D6' },
+  { name:'Versioned WES template', owner:'Szczepanik', status:'done', pct:100, note:'Done D8' },
+  { name:'Arrow routing (XyronQ)', owner:'Ptak', status:'done', pct:100, note:'Done D5' },
+  { name:'Publish visibility', owner:'Ptak', status:'done', pct:100, note:'Done D4' },
+  { name:'UI improvements', owner:'XQ', status:'done', pct:100, note:'Done D4' },
+  { name:'Demo.bss arrow fix', owner:'Ptak', status:'done', pct:100, note:'Done D1' },
+  { name:'Type system validation', owner:'Walczak', status:'done', pct:100, note:'Done D3' },
+  { name:'WMS NIO lifecycle (P0)', owner:'Magdziarek', status:'done', pct:100, note:'Done D9' },
+  { name:'WMS inventory corr. — WMS', owner:'Magdziarek', status:'done', pct:100, note:'WMS side ready' },
+  { name:'MFC Zones + Buffers (P0)', owner:'Walczak+Rustam', status:'risk', pct:60, note:'Runway extended to 22.3' },
+  { name:'HMI Lagerspiegel — inv. overview (P0)', owner:'Mikolaj', status:'risk', pct:50, note:'Customer acceptance blocker — runway to 22.3' },
+  { name:'HMI Lagerspiegel — pallet storage (P0)', owner:'Mikolaj', status:'risk', pct:30, note:'Depends on inv. correction — runway to 22.3' },
+  { name:'AutoStore protocol integration (P0)', owner:'Walczak', status:'risk', pct:20, note:'Needed before 13.4 — runway to 22.3' },
+  { name:'WMS inventory corr. — HMI (P0)', owner:'Mikolaj', status:'risk', pct:40, note:'Runway to 22.3' },
+  { name:'IPDD gate — all IPs approved', owner:'BO+TO', status:'active', pct:70, note:'Runway to 22.3' },
+  { name:'Backup + restore', owner:'Szczepanik+', status:'active', pct:75, note:'Backup done; restore ongoing' },
+  { name:'IssueList', owner:'XQ', status:'active', pct:40, note:'Runway to 22.3' },
+  { name:'WARP partial deploy', owner:'Szczepanik', status:'active', pct:99, note:'Waiting CI/CD only' },
+  { name:'Editable edges (process layer)', owner:'XQ', status:'active', pct:30, note:'Runway to 22.3' },
+  { name:'EventHandle multi-config', owner:'XQ', status:'active', pct:20, note:'Runway to 22.3' },
+  { name:'Transport node role IP', owner:'XQ', status:'active', pct:60, note:'IP approved, MR for CR' },
+  { name:'Add events switch (XyronQ)', owner:'XQ', status:'active', pct:20, note:'Runway to 22.3' },
+  { name:'Manual TA process', owner:'XQ', status:'active', pct:10, note:'Starts on-site 23.3' },
+  { name:'Unblocking Piotr Magdziarek', owner:'XQ+TO', status:'active', pct:50, note:'Slots/NIO policy issues' },
+  { name:'New process triggers (Outbound)', owner:'Eckert+Rustam', status:'active', pct:10, note:'New date TBD' },
+  { name:'BFT1–4 SPS tests', owner:'Walczak+Eckert', status:'onsite', pct:0, note:'On-site from 23.3' },
+  { name:'BFT5+RBG1+PFT tests', owner:'Walczak+Eckert', status:'onsite', pct:0, note:'On-site from 23.3' },
+  { name:'AA/RA + AutoStore API', owner:'Walczak', status:'onsite', pct:0, note:'On-site from 23.3' },
+];
+
+const STATUS_ORDER = { risk:0, onsite:1, active:2, done:3 };
+let currentFilter = 'all';
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['all','done','active','risk','onsite'][i] === f);
+  });
+  renderModules();
+}
+
+function showDetail(m) {
+  document.getElementById('detailTitle').textContent = m.name;
+  document.getElementById('detailRows').innerHTML = `
+    <div class="detail-row"><span>Owner</span><span class="detail-val">${m.owner}</span></div>
+    <div class="detail-row"><span>Status</span><span class="detail-val">${{done:'Done',risk:'At risk',onsite:'On-site deferred',active:'In progress'}[m.status]}</span></div>
+    <div class="detail-row"><span>Completion</span><span class="detail-val">${m.pct}%</span></div>
+    <div class="detail-row"><span>Note</span><span class="detail-val">${m.note}</span></div>`;
+  document.getElementById('detailPanel').style.display = 'block';
+}
+
+function renderModules() {
+  const grid = document.getElementById('moduleGrid');
+  grid.innerHTML = '';
+  const sorted = [...MODULES].sort((a,b) => STATUS_ORDER[a.status]-STATUS_ORDER[b.status]);
+  const filtered = currentFilter === 'all' ? sorted : sorted.filter(m => m.status === currentFilter);
+  filtered.forEach(m => {
+    const barColor = {done:'#1D9E75',risk:'#EF9F27',onsite:'#7F77DD',active:'#378ADD'}[m.status];
+    const div = document.createElement('div');
+    div.className = 'mod';
+    div.innerHTML = `
+      <div class="mod-header">
+        <span class="mod-name">${m.name}</span>
+        <span class="pill ${m.status}">${{done:'done',risk:'at risk',onsite:'on-site',active:'active'}[m.status]}</span>
+      </div>
+      <div class="mod-owner">${m.owner}</div>
+      <div class="mod-bar"><div class="mod-fill" style="width:${m.pct}%;background:${barColor}"></div></div>`;
+    div.onclick = () => showDetail(m);
+    grid.appendChild(div);
+  });
+}
+
+renderModules();
+</script>
+</body>
+</html>
