@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogisQ-WES — Project ROI Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0e0e0d;
+  --paper: #f7f5ef;
+  --rule: rgba(14,14,13,.1);
+  --teal: #1D9E75;
+  --teal-bg: #E1F5EE;
+  --teal-dk: #085041;
+  --red-bg: #FCEBEB;
+  --red-dk: #791F1F;
+  --red-mid: #E24B4A;
+  --amber-bg: #FAEEDA;
+  --amber-dk: #633806;
+  --blue-bg: #E6F1FB;
+  --blue-dk: #0C447C;
+  --purple-bg: #EEEDFE;
+  --purple-dk: #26215C;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Fraunces', serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--mono); background: var(--paper); color: var(--ink); min-height: 100vh; padding: 2rem 1rem; }
+.shell { max-width: 900px; margin: 0 auto; }
+.masthead { border-bottom: 1.5px solid var(--ink); padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.masthead-title { font-family: var(--serif); font-size: 26px; font-weight: 300; font-style: italic; letter-spacing: -.5px; }
+.masthead-sub { font-size: 10px; color: rgba(14,14,13,.5); text-transform: uppercase; letter-spacing: .12em; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+@media(max-width:640px){ .grid { grid-template-columns: 1fr; } }
+.panel { border: 1px solid var(--rule); padding: 1.25rem; }
+.panel-title { font-size: 9px; text-transform: uppercase; letter-spacing: .15em; font-weight: 500; color: rgba(14,14,13,.4); border-bottom: 1px solid var(--rule); padding-bottom: 8px; margin-bottom: 14px; }
+.ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ctrl-label { font-size: 11px; color: rgba(14,14,13,.6); min-width: 150px; }
+.ctrl input[type=range] { flex: 1; appearance: none; height: 2px; background: var(--ink); outline: none; cursor: pointer; }
+.ctrl input[type=range]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: var(--ink); border-radius: 50%; cursor: pointer; }
+.ctrl-val { font-size: 12px; font-weight: 500; min-width: 72px; text-align: right; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { padding: .75rem; border: 1px solid var(--rule); }
+.stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: rgba(14,14,13,.4); margin-bottom: 4px; }
+.stat-val { font-family: var(--serif); font-size: 24px; font-weight: 300; }
+.stat-val.green { color: var(--teal); }
+.stat-val.amber { color: #854F0B; }
+.bar-section { margin-top: 14px; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.bar-name { font-size: 10px; color: rgba(14,14,13,.5); min-width: 120px; }
+.bar-track { flex: 1; height: 22px; background: rgba(14,14,13,.06); }
+.bar-fill { height: 100%; display: flex; align-items: center; padding: 0 8px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+.bar-text { font-size: 10px; font-weight: 500; white-space: nowrap; }
+.table-wrap { border: 1px solid var(--rule); margin-bottom: 24px; overflow-x: auto; }
+.cmp { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 500px; }
+.cmp th { font-size: 9px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--rule); background: rgba(14,14,13,.03); text-align: left; }
+.cmp td { padding: 7px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.cmp tr:last-child td { border-bottom: none; }
+.cmp td:first-child { color: rgba(14,14,13,.5); font-size: 10px; }
+.cmp .worse { color: var(--red-mid); }
+.cmp .better { color: var(--teal); font-weight: 500; }
+.cmp .neutral { color: var(--ink); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+.tag { font-size: 10px; padding: 3px 10px; border: 1px solid; letter-spacing: .04em; }
+.tag.green { background: var(--teal-bg); border-color: var(--teal); color: var(--teal-dk); }
+.tag.blue { background: var(--blue-bg); border-color: #378ADD; color: var(--blue-dk); }
+.tag.amber { background: var(--amber-bg); border-color: #EF9F27; color: var(--amber-dk); }
+.tag.purple { background: var(--purple-bg); border-color: #7F77DD; color: var(--purple-dk); }
+.footer-note { font-size: 9px; color: rgba(14,14,13,.35); text-transform: uppercase; letter-spacing: .1em; border-top: 1px solid var(--rule); padding-top: 10px; }
+.market-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-bottom: 24px; }
+.market-cell { background: var(--paper); padding: .7rem .85rem; }
+.market-cell .label { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: rgba(14,14,13,.4); margin-bottom: 4px; }
+.market-cell .num { font-family: var(--serif); font-size: 20px; font-weight: 300; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="masthead">
+    <div>
+      <div class="masthead-title">LogisQ-WES — Project ROI Calculator</div>
+      <div class="masthead-sub" style="margin-top:4px">BSS LogisQ Joint Venture · Macrix Technology Group · v1.1 · European market</div>
+    </div>
+    <div class="masthead-sub" style="text-align:right">Traditional WES vs. XyronQ-powered delivery</div>
+  </div>
+
+  <div class="market-strip">
+    <div class="market-cell"><div class="label">European WES market 2024</div><div class="num">~540M €</div></div>
+    <div class="market-cell"><div class="label">Projected 2030</div><div class="num">~1.4B €</div></div>
+    <div class="market-cell"><div class="label">European CAGR</div><div class="num">14–18%</div></div>
+    <div class="market-cell"><div class="label">Typical custom dev share</div><div class="num">30–50%</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">Project parameters</div>
+      <div class="ctrl"><span class="ctrl-label">Project budget</span><input type="range" id="budget" min="200000" max="3000000" step="50000" value="800000"><span class="ctrl-val" id="budgetOut">800K €</span></div>
+      <div class="ctrl"><span class="ctrl-label">Subsystems</span><input type="range" id="subsystems" min="1" max="10" step="1" value="4"><span class="ctrl-val" id="subOut">4</span></div>
+      <div class="ctrl"><span class="ctrl-label">Complexity</span><input type="range" id="complexity" min="1" max="3" step="1" value="2"><span class="ctrl-val" id="compOut">Medium</span></div>
+      <div class="ctrl"><span class="ctrl-label">Team size (devs)</span><input type="range" id="team" min="2" max="20" step="1" value="6"><span class="ctrl-val" id="teamOut">6</span></div>
+      <div class="ctrl"><span class="ctrl-label">Day rate (€/dev)</span><input type="range" id="rate" min="500" max="1200" step="50" value="750"><span class="ctrl-val" id="rateOut">750 €</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Delivery comparison</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Traditional</div><div class="stat-val amber" id="mTrad">—</div></div>
+        <div class="stat"><div class="stat-label">LogisQ-WES</div><div class="stat-val green" id="mLogisq">—</div></div>
+        <div class="stat"><div class="stat-label">Weeks saved</div><div class="stat-val green" id="mWks">—</div></div>
+        <div class="stat"><div class="stat-label">Cost saving</div><div class="stat-val green" id="mSaving">—</div></div>
+      </div>
+      <div class="bar-section" id="bars"></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="cmp">
+      <thead>
+        <tr>
+          <th style="min-width:140px">Dimension</th>
+          <th>Traditional WES</th>
+          <th>LogisQ-WES (XyronQ)</th>
+        </tr>
+      </thead>
+      <tbody id="cmpBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel-title" style="margin-bottom:8px">Relevant differentiators for this project</div>
+  <div class="tags" id="tags"></div>
+
+  <div class="footer-note">
+    Model based on: 30–50% custom dev reduction (Macrix internal benchmark · Competitive Positioning Brief 2026) ·
+    European WES market: Grand View Research 2024 (Europe = 32.7% of global ~1.64B €) · CAGR 14–18% (multiple analyst sources 2024–2030) ·
+    All figures in EUR · Assumptions: linear scaling with subsystem count and complexity · Actual savings vary by project
+  </div>
+</div>
+
+<script>
+const fmtEur = v => {
+  if (v>=1000000) return (v/1000000).toFixed(2).replace(/\.?0+$/,'')+'M \u20ac';
+  if (v>=1000) return Math.round(v/1000)+'K \u20ac';
+  return Math.round(v)+' \u20ac';
+};
+const COMP = ['Low','Medium','High'];
+const COMP_M = [1, 1.4, 1.9];
+
+function calc() {
+  const budget = +document.getElementById('budget').value;
+  const subs = +document.getElementById('subsystems').value;
+  const comp = +document.getElementById('complexity').value - 1;
+  const team = +document.getElementById('team').value;
+  const rate = +document.getElementById('rate').value;
+
+  document.getElementById('budgetOut').textContent = fmtEur(budget);
+  document.getElementById('subOut').textContent = subs;
+  document.getElementById('compOut').textContent = COMP[comp];
+  document.getElementById('teamOut').textContent = team;
+  document.getElementById('rateOut').textContent = rate+' \u20ac';
+
+  const tradWks = Math.round((8 + subs*2.5) * COMP_M[comp]);
+  const tradCost = team * rate * 5 * tradWks;
+  const customShare = 0.35 + comp*0.075;
+
+  const redPct = 0.38 + comp*0.05;
+  const lqWks = Math.round(tradWks * (1-redPct));
+  const lqCost = team * rate * 5 * lqWks;
+  const wksSaved = tradWks - lqWks;
+  const costSaved = tradCost - lqCost;
+
+  document.getElementById('mTrad').textContent = tradWks+' wks';
+  document.getElementById('mLogisq').textContent = lqWks+' wks';
+  document.getElementById('mWks').textContent = '+'+wksSaved+' wks';
+  document.getElementById('mSaving').textContent = fmtEur(costSaved);
+
+  document.getElementById('bars').innerHTML = `
+    <div class="bar-row">
+      <span class="bar-name">Traditional WES</span>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#F09595"><span class="bar-text" style="color:#501313">${tradWks} wks \u00b7 ${fmtEur(tradCost)}</span></div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-name">LogisQ-WES</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(lqWks/tradWks*100)}%;background:#5DCAA5"><span class="bar-text" style="color:#04342C">${lqWks} wks \u00b7 ${fmtEur(lqCost)}</span></div></div>
+    </div>`;
+
+  const rows = [
+    ['Total delivery time', tradWks+' weeks', lqWks+' weeks', 'worse','better'],
+    ['Total dev cost (est.)', fmtEur(tradCost), fmtEur(lqCost), 'worse','better'],
+    ['Custom dev share', Math.round(customShare*100)+'%', Math.round(customShare*(1-redPct)*100)+'%', 'worse','better'],
+    ['Time saving', '\u2014', '+'+wksSaved+' weeks ('+Math.round(redPct*100)+'%)', 'neutral','better'],
+    ['Cost saving', '\u2014', fmtEur(costSaved), 'neutral','better'],
+    ['Process design method', 'Manual coding per project', 'XyronQ visual DSL + WARP', 'neutral','better'],
+    ['Component reuse', 'Low \u2014 rebuild each time', 'High \u2014 XyronQ library', 'neutral','better'],
+    ['3D Digital Twin', 'Additional cost', 'Included in platform', 'neutral','better'],
+    ['Kubernetes / edge deploy', 'Custom setup required', 'One-click (ArconQ)', 'neutral','better'],
+    ['AI-assisted design', 'Not available', 'DevyonQ / WARP agents', 'neutral','better'],
+    ['Hardware dependency', 'Vendor lock-in risk', 'Hardware agnostic', 'neutral','better'],
+    ['Domain expandability', 'WES only', 'XES family (MES, FMS, EMS\u2026)', 'neutral','better'],
+    ['Governance / IPDD', 'Ad hoc', 'IPDD methodology included', 'neutral','better'],
+  ];
+
+  document.getElementById('cmpBody').innerHTML = rows.map(r =>
+    `<tr><td>${r[0]}</td><td class="${r[3]}">${r[1]}</td><td class="${r[4]}">${r[2]}</td></tr>`
+  ).join('');
+
+  const tagData = [
+    { text: Math.round(redPct*100)+'% less custom development', cls:'green' },
+    { text: wksSaved+' weeks faster to market', cls:'green' },
+    { text: fmtEur(costSaved)+' dev cost saving', cls:'green' },
+    { text: 'XyronQ visual process design', cls:'blue' },
+    { text: 'ArconQ Kubernetes-native platform', cls:'blue' },
+    { text: '3D Digital Twin simulation', cls:'blue' },
+    { text: subs>=4 ? 'High reuse across '+subs+' subsystems' : 'Modular '+subs+'-subsystem delivery', cls:'purple' },
+    { text: COMP[comp]+' complexity \u2014 '+(['configurable','IPDD-governed','full XyronQ suite'][comp]), cls:'purple' },
+    { text: 'BSS LogisQ JV \u2014 turnkey delivery', cls:'amber' },
+    { text: 'ISO 9001 + ISO 27001 certified', cls:'amber' },
+  ];
+
+  document.getElementById('tags').innerHTML = tagData.map(t =>
+    `<span class="tag ${t.cls}">${t.text}</span>`
+  ).join('');
+}
+
+['budget','subsystems','complexity','team','rate'].forEach(id =>
+  document.getElementById(id).addEventListener('input', calc)
+);
+calc();
+</script>
+</body>
+</html>
