@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoStore Bin Selection Visualizer — Merck Lab Hub</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f4ef; color: #1a1a18; min-height: 100vh; padding: 2rem 1rem; }
+.card { background: #fff; border-radius: 16px; border: 0.5px solid rgba(0,0,0,0.1); padding: 1.5rem; width: 100%; max-width: 860px; margin: 0 auto; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+.sub { font-size: 13px; color: #73726c; margin-bottom: 1.25rem; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.section { font-size: 11px; font-weight: 500; color: #73726c; text-transform: uppercase; letter-spacing: .05em; margin: .75rem 0 .4rem; }
+.ctrl { display: flex; align-items: center; gap: 10px; margin-bottom: .65rem; }
+.ctrl label { font-size: 12px; color: #73726c; min-width: 130px; }
+.ctrl input[type=range] { flex: 1; appearance: none; height: 4px; border-radius: 2px; background: #d3d1c7; outline: none; cursor: pointer; }
+.ctrl input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #1a1a18; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.2); }
+.val { font-size: 13px; font-weight: 500; min-width: 36px; text-align: right; }
+.metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 1rem 0; }
+.metric { background: #f5f4ef; border-radius: 8px; padding: .6rem .8rem; }
+.mlabel { font-size: 11px; color: #73726c; margin-bottom: 3px; }
+.mval { font-size: 18px; font-weight: 500; }
+.bin-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; margin-bottom: 1rem; }
+.bin { border-radius: 8px; padding: .5rem .6rem; border: 0.5px solid rgba(0,0,0,0.1); cursor: default; }
+.bin-id { font-size: 11px; font-weight: 500; color: #73726c; }
+.bin-score { font-size: 16px; font-weight: 500; margin: .15rem 0; }
+.bin-tags { font-size: 10px; color: #888780; line-height: 1.4; }
+.bin.selected { background: #E1F5EE; border-color: #1D9E75; }
+.bin.selected .bin-id { color: #0F6E56; }
+.bin.selected .bin-score { color: #085041; }
+.bin.on-conveyor { background: #E6F1FB; border-color: #378ADD; }
+.bin.on-conveyor .bin-id { color: #185FA5; }
+.bin.on-conveyor .bin-score { color: #0C447C; }
+.bin.fetching { background: #FAEEDA; border-color: #BA7517; }
+.bin.fetching .bin-id { color: #854F0B; }
+.bin.fetching .bin-score { color: #633806; }
+.order-row { display: flex; align-items: center; gap: 8px; padding: .35rem .6rem; border-radius: 8px; margin-bottom: 4px; border: 0.5px solid rgba(0,0,0,0.08); font-size: 12px; }
+.order-row.current { background: #E6F1FB; border-color: #378ADD; }
+.order-id { font-weight: 500; min-width: 72px; }
+.order-articles { color: #73726c; flex: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: #73726c; margin-bottom: .75rem; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+.footer { margin-top: 1rem; font-size: 11px; color: #888780; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>AutoStore Bin Selection Visualizer</h1>
+  <p class="sub">Merck Lab Hub Logistik — KLT order fulfillment · Algorithm: Phase 1–2 weighted scoring + conveyor optimization</p>
+
+  <div class="two-col">
+    <div>
+      <div class="section">Algorithm parameters</div>
+      <div class="ctrl"><label>Conveyor capacity (N)</label><input type="range" id="N" min="3" max="8" step="1" value="4"><span class="val" id="Nout">4</span></div>
+      <div class="ctrl"><label>Lookahead window (K)</label><input type="range" id="K" min="1" max="5" step="1" value="3"><span class="val" id="Kout">3</span></div>
+      <div class="ctrl"><label>Decay factor</label><input type="range" id="decay" min="0.5" max="1.0" step="0.05" value="0.8"><span class="val" id="decayout">0.80</span></div>
+      <div class="ctrl"><label>Retention bonus</label><input type="range" id="bonus" min="0" max="5" step="0.5" value="2"><span class="val" id="bonusout">2.0</span></div>
+    </div>
+    <div>
+      <div class="section">Order queue (Merck example)</div>
+      <div id="orderList"></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="mlabel">Bins selected</div><div class="mval" id="mSelected">-</div></div>
+    <div class="metric"><div class="mlabel">Bins to fetch</div><div class="mval" style="color:#854F0B" id="mFetch">-</div></div>
+    <div class="metric"><div class="mlabel">Bins to return</div><div class="mval" style="color:#A32D2D" id="mReturn">-</div></div>
+    <div class="metric"><div class="mlabel">Swaps saved</div><div class="mval" style="color:#0F6E56" id="mSaved">-</div></div>
+  </div>
+
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot" style="background:#E1F5EE;border:0.5px solid #1D9E75;"></span>Selected (new fetch)</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#E6F1FB;border:0.5px solid #378ADD;"></span>Already on conveyor</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#FAEEDA;border:0.5px solid #BA7517;"></span>Fetching from AutoStore</span>
+  </div>
+
+  <div class="section">Candidate bins — scored by algorithm</div>
+  <div class="bin-grid" id="binGrid"></div>
+
+  <div class="footer">Based on: AutoStore Bin Selection Optimization Algorithm · Merck Lab Hub Logistik · Macrix / LogisQ-WES</div>
+</div>
+
+<script>
+const BINS = [
+  { id:'AS-10010', contents:{ Trichter:89, Pipetten:120 } },
+  { id:'AS-10011', contents:{ Reagenzglas:500, Trichter:30 } },
+  { id:'AS-10015', contents:{ Erlenmeyerkolben:50, Nitrilhandschuhe:200 } },
+  { id:'AS-10022', contents:{ Pipetten:80, Reagenzglas:100 } },
+  { id:'AS-10033', contents:{ Trichter:15, Nitrilhandschuhe:50 } },
+  { id:'AS-10044', contents:{ Pipetten:40, Erlenmeyerkolben:20 } },
+  { id:'AS-10055', contents:{ Reagenzglas:200, Nitrilhandschuhe:100 } },
+  { id:'AS-10066', contents:{ Trichter:25, Erlenmeyerkolben:15 } },
+  { id:'AS-10077', contents:{ Pipetten:60, Reagenzglas:80 } },
+  { id:'AS-10088', contents:{ Nitrilhandschuhe:150, Trichter:10 } },
+];
+
+const ORDERS = [
+  { id:'022-037', items:{ Trichter:4, Erlenmeyerkolben:2, Reagenzglas:250 } },
+  { id:'022-039', items:{ Pipetten:50, Trichter:10 } },
+  { id:'022-045', items:{ Nitrilhandschuhe:180, Reagenzglas:100 } },
+  { id:'022-048', items:{ Trichter:20, Pipetten:25 } },
+  { id:'022-051', items:{ Erlenmeyerkolben:10, Pipetten:30 } },
+];
+
+const CONVEYOR_INITIAL = new Set(['AS-10010','AS-10015']);
+
+function buildDemand(K) {
+  const window = ORDERS.slice(0, Math.min(K+1, ORDERS.length));
+  const demand = {}, total = {};
+  window.forEach((ord, idx) => {
+    Object.entries(ord.items).forEach(([art, qty]) => {
+      if (!demand[art]) demand[art] = [];
+      demand[art].push({ orderId: ord.id, quantity: qty, index: idx });
+      total[art] = (total[art] || 0) + qty;
+    });
+  });
+  return { demand, total };
+}
+
+function scoreBin(bin, demand, total, decay, bonus, conveyor) {
+  let score = 0;
+  Object.entries(bin.contents).forEach(([art, binQty]) => {
+    if (!demand[art]) return;
+    demand[art].forEach(entry => {
+      const w = Math.pow(decay, entry.index);
+      const fill = Math.min(binQty, entry.quantity) / entry.quantity;
+      score += w * fill * demand[art].length;
+    });
+  });
+  if (conveyor.has(bin.id)) score += bonus;
+  const relevant = Object.entries(bin.contents).reduce((s,[a,q]) => s + (total[a] ? Math.min(q,total[a]) : 0), 0);
+  if (relevant < 3) score -= 1.0;
+  return score;
+}
+
+function computeCoverage(order, selected) {
+  let cov = 0, tot = 0;
+  Object.entries(order.items).forEach(([art, needed]) => {
+    tot += needed;
+    let avail = 0;
+    BINS.forEach(b => { if (selected.has(b.id) && b.contents[art]) avail += b.contents[art]; });
+    cov += Math.min(needed, avail);
+  });
+  return tot > 0 ? Math.round(cov/tot*100) : 0;
+}
+
+function run() {
+  const N = +document.getElementById('N').value;
+  const K = +document.getElementById('K').value;
+  const decay = +document.getElementById('decay').value;
+  const bonus = +document.getElementById('bonus').value;
+  document.getElementById('Nout').textContent = N;
+  document.getElementById('Kout').textContent = K;
+  document.getElementById('decayout').textContent = decay.toFixed(2);
+  document.getElementById('bonusout').textContent = bonus.toFixed(1);
+
+  const { demand, total } = buildDemand(K);
+  const conveyor = CONVEYOR_INITIAL;
+  const candidates = BINS.filter(b => Object.keys(b.contents).some(a => demand[a]));
+  const scored = candidates.map(b => [b.id, scoreBin(b, demand, total, decay, bonus, conveyor)]).sort((a,b) => b[1]-a[1]);
+
+  const selected = new Set();
+  for (const [id] of scored) { if (selected.size >= N) break; selected.add(id); }
+
+  const toFetch = [...selected].filter(id => !conveyor.has(id));
+  const toReturn = [...conveyor].filter(id => !selected.has(id));
+  const saved = Math.max(0, N - toFetch.length);
+
+  document.getElementById('mSelected').textContent = selected.size;
+  document.getElementById('mFetch').textContent = toFetch.length;
+  document.getElementById('mReturn').textContent = toReturn.length;
+  document.getElementById('mSaved').textContent = '+' + saved;
+
+  const grid = document.getElementById('binGrid');
+  grid.innerHTML = '';
+  scored.forEach(([id, score]) => {
+    const bin = BINS.find(b => b.id === id);
+    const isConveyor = conveyor.has(id) && selected.has(id);
+    const isFetching = toFetch.includes(id);
+    const isSelected = selected.has(id);
+    let cls = 'bin';
+    if (isConveyor) cls += ' on-conveyor';
+    else if (isSelected) cls += ' fetching';
+    const tags = Object.entries(bin.contents).map(([a,q]) => `${a}: ${q}`).join(', ');
+    const div = document.createElement('div');
+    div.className = cls;
+    div.innerHTML = `<div class="bin-id">${id}</div><div class="bin-score">${score.toFixed(1)}</div><div class="bin-tags">${tags}</div>`;
+    grid.appendChild(div);
+  });
+
+  const ol = document.getElementById('orderList');
+  ol.innerHTML = '';
+  ORDERS.slice(0, K+1).forEach((ord, i) => {
+    const cov = computeCoverage(ord, selected);
+    const row = document.createElement('div');
+    row.className = 'order-row' + (i===0 ? ' current' : '');
+    const arts = Object.entries(ord.items).map(([a,q]) => `${a} ×${q}`).join(', ');
+    const col = cov===100 ? '#0F6E56' : cov>=50 ? '#854F0B' : '#A32D2D';
+    row.innerHTML = `<span class="order-id">${ord.id}</span><span class="order-articles">${arts}</span><span style="font-weight:500;min-width:36px;text-align:right;color:${col}">${cov}%</span>`;
+    ol.appendChild(row);
+  });
+}
+
+['N','K','decay','bonus'].forEach(id => document.getElementById(id).addEventListener('input', run));
+run();
+</script>
+</body>
+</html>
