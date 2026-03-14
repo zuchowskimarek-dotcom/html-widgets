@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WES Process Flow Explorer — LogisQ-WES / XyronQ</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f4ef; color: #1a1a18; min-height: 100vh; padding: 1.5rem 1rem; }
+.card { background: #fff; border-radius: 16px; border: 0.5px solid rgba(0,0,0,0.1); padding: 1.5rem; width: 100%; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 17px; font-weight: 500; margin-bottom: 3px; }
+.sub { font-size: 12px; color: #73726c; margin-bottom: 1rem; }
+.layer-legend { display: flex; gap: 12px; font-size: 11px; flex-wrap: wrap; margin-bottom: 10px; }
+.ll { display: flex; align-items: center; gap: 4px; color: #73726c; }
+.ll-dot { width: 10px; height: 10px; border-radius: 50%; }
+.scenario-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.scenario-btn { padding: 5px 12px; font-size: 12px; font-weight: 500; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 8px; background: #fff; color: #1a1a18; cursor: pointer; }
+.scenario-btn.active { background: #E6F1FB; border-color: #378ADD; color: #0C447C; }
+.progress-bar { height: 3px; background: #f0efe9; border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+.progress-fill { height: 100%; background: #378ADD; border-radius: 2px; transition: width .4s; }
+.top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.flow-area { display: flex; flex-direction: column; gap: 0; }
+.step { display: flex; align-items: stretch; gap: 0; }
+.step-connector { display: flex; flex-direction: column; align-items: center; width: 36px; flex-shrink: 0; }
+.connector-line { width: 2px; background: rgba(0,0,0,0.08); flex: 1; min-height: 10px; }
+.connector-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; flex-shrink: 0; margin: 3px 0; transition: all .3s; }
+.step-card { flex: 1; border: 0.5px solid rgba(0,0,0,0.08); border-radius: 8px; padding: .5rem .8rem; margin-bottom: 5px; cursor: pointer; }
+.step-card:hover { border-color: rgba(0,0,0,0.18); }
+.step-card.active { border-color: #378ADD; background: #E6F1FB; }
+.step-card.error { border-color: #E24B4A; background: #FCEBEB; }
+.step-layer { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.step-title { font-size: 12px; font-weight: 500; color: #1a1a18; }
+.step-desc { font-size: 10px; color: #73726c; margin-top: 1px; line-height: 1.4; }
+.detail-panel { border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 1rem; background: #fff; min-height: 200px; }
+.detail-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.detail-layer { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.detail-body { font-size: 12px; color: #5F5E5A; line-height: 1.6; }
+.payload-box { background: #f5f4ef; border-radius: 8px; padding: .5rem .7rem; font-size: 10px; font-family: "SF Mono", Monaco, monospace; color: #1a1a18; margin-top: .6rem; line-height: 1.5; white-space: pre; overflow-x: auto; }
+.btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.nav-btn { padding: 5px 14px; font-size: 12px; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 8px; background: #fff; color: #1a1a18; cursor: pointer; }
+.nav-btn:hover { background: #f5f4ef; }
+.nav-btn:disabled { opacity: .4; cursor: default; }
+.footer { margin-top: 1rem; font-size: 10px; color: #888780; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>WES Process Flow Explorer</h1>
+  <p class="sub">LogisQ-WES · XyronQ Execution System · Workflow-First Authorization Model</p>
+
+  <div class="layer-legend">
+    <span class="ll"><span class="ll-dot" style="background:#7F77DD"></span>ERP/MES</span>
+    <span class="ll"><span class="ll-dot" style="background:#1D9E75"></span>WMS</span>
+    <span class="ll"><span class="ll-dot" style="background:#378ADD"></span>PER</span>
+    <span class="ll"><span class="ll-dot" style="background:#EF9F27"></span>MFC</span>
+    <span class="ll"><span class="ll-dot" style="background:#E24B4A"></span>Exception</span>
+  </div>
+
+  <div class="scenario-row">
+    <button class="scenario-btn active" onclick="setScenario(0)">Inbound + slotting</button>
+    <button class="scenario-btn" onclick="setScenario(1)">Outbound pick (FEFO)</button>
+    <button class="scenario-btn" onclick="setScenario(2)">NIO / exception path</button>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+
+  <div class="top">
+    <div class="flow-area" id="flowArea"></div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-title" id="dTitle">Select a step</div>
+      <div class="detail-layer" id="dLayer"></div>
+      <div class="detail-body" id="dBody">Click any step in the flow to see the contract, payload, and architectural note.</div>
+      <div class="payload-box" id="dPayload" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="nav-btn" id="btnPrev" onclick="navigate(-1)">← prev</button>
+    <button class="nav-btn" id="btnNext" onclick="navigate(1)">next →</button>
+  </div>
+
+  <div class="footer">Source: WES Architecture Revisited · Macrix / LogisQ-WES / XyronQ</div>
+</div>
+
+<script>
+const LAYER_COLORS = { ERP:'#7F77DD', WMS:'#1D9E75', PER:'#378ADD', MFC:'#EF9F27', EXCEPTION:'#E24B4A' };
+
+const SCENARIOS = [
+{
+  steps: [
+    { layer:'ERP', title:'Create BusinessOrder', desc:'ERP sends an inbound BO to WMS', isError:false, body:'ERP/MES issues a new inbound order. WMS receives it and decomposes it into BusinessTasks. This is domain-only — no runtime involvement yet.', payload:'{\n  "event": "BusinessOrder.Created",\n  "id": "BO-2025-000512",\n  "type": "Inbound",\n  "externalRef": "PO-882211"\n}' },
+    { layer:'WMS', title:'Decompose into BusinessTasks', desc:'WMS creates BT for intake + slotting', isError:false, body:'WMS decomposes the BO into one or more BusinessTasks. Each BT represents a unit of executable work. WMS is the owner — PER has no awareness yet.', payload:'{\n  "btId": "BT-001",\n  "boId": "BO-2025-000512",\n  "taskType": "Inbound.Intake",\n  "status": "Planned"\n}' },
+    { layer:'WMS', title:'BusinessTask.Ready → PER', desc:'WMS fires the only valid runtime trigger', isError:false, body:'This is the ONLY valid arrow that starts runtime. WMS signals PER that a task is ready. PER does not poll — it reacts to this event. WMS never calls StartWorkflow directly.', payload:'{\n  "boId": "BO-2025-000512",\n  "btId": "BT-001",\n  "boType": "Inbound",\n  "btType": "Intake",\n  "payload": { "huId": "PAL-9900118", "location": "IP01" }\n}' },
+    { layer:'PER', title:'Process Catalog Lookup', desc:'PER matches task to workflow via catalog', isError:false, body:'PER receives BusinessTask.Ready and builds a routing context. It looks up the Process Catalog — published by WARP at deploy time — and resolves the correct processId and version.', payload:'// Catalog match:\n{\n  "match": "site=DE01 & boType=Inbound & btType=Intake",\n  "processId": "inbound-with-slotting",\n  "EOType": "Inbound",\n  "version": "2.1.0"\n}' },
+    { layer:'PER', title:'AuthorizeProcess → WMS', desc:'Single authorization call per process instance', isError:false, body:'PER calls WMS exactly ONCE per process instance. This replaces capability-level ping-pong. WMS returns a processScope that constrains all subsequent execution.', payload:'{\n  "processId": "inbound-with-slotting",\n  "EOType": "Inbound",\n  "inputs": {\n    "boId": "BO-2025-000512",\n    "btId": "BT-001",\n    "payload": { "huId": "PAL-9900118" }\n  }\n}' },
+    { layer:'WMS', title:'Return scope + policyHints', desc:'WMS defines allowed routes and operations', isError:false, body:'WMS validates the request and returns processScope. PER executes ONLY within this scope. Any attempt to execute outside triggers abort + audit event.', payload:'{\n  "approved": true,\n  "processScope": {\n    "allowTransport": ["IP01→AISLE_A*","IP01→AISLE_B*"],\n    "forbidInventoryDirect": true\n  },\n  "policyHints": { "priority": "Standard" },\n  "idemKey": "bo#BO-512#bt#BT-001"\n}' },
+    { layer:'PER', title:'Resolve Capabilities → Blueprints', desc:'Mapper expands business vocab to technical steps', isError:false, body:'PER expands Capability nodes to Blueprint chains via the Mapper. Example: Decision.Slotting → PreFilter.ContourWeight@v1 → DecideStorageLocation@v3 → Guard.BinFree@v1.', payload:'"Decision.Slotting" =>\n  PreFilter.ContourWeight@v1\n  → DecideStorageLocation@v3\n  → Guard.BinFree@v1\n     onFailure: Exception.NIO' },
+    { layer:'MFC', title:'Execute transport (within scope)', desc:'MFC moves HU from IP01 to target aisle', isError:false, body:'PER dispatches a TransportRequest to MFC. PER validates every transport step against processScope middleware. Violations abort and audit.', payload:'{\n  "type": "TransportRequest",\n  "huId": "PAL-9900118",\n  "from": "IP01",\n  "to": "AISLE_A_07_03",\n  "idemKey": "bo#BO-512#bt#BT-001"\n}' },
+    { layer:'MFC', title:'HU.Arrived @ target', desc:'MFC confirms physical placement', isError:false, body:'MFC reports back to PER when the HU arrives. PER continues the workflow. All events are enriched with boId/btId for end-to-end traceability.', payload:'{\n  "event": "HU.Arrived",\n  "huId": "PAL-9900118",\n  "location": "AISLE_A_07_03",\n  "timestamp": "2025-10-11T09:52:14Z"\n}' },
+    { layer:'WMS', title:'BusinessTask.Completed', desc:'PER closes the BT, WMS updates BO state', isError:false, body:'PER emits BusinessTask.Completed. WMS receives it, updates the BO state. WMS then reports to ERP. Full traceability from ERP order to physical placement is maintained.', payload:'{\n  "event": "BusinessTask.Completed",\n  "btId": "BT-001",\n  "boId": "BO-2025-000512",\n  "result": "HU.Stored",\n  "timestamp": "2025-10-11T09:52:44Z"\n}' },
+  ]
+},
+{
+  steps: [
+    { layer:'ERP', title:'Create Outbound BO', desc:'Sales/dispatch order from ERP', isError:false, body:'ERP issues an outbound order. WMS receives it via CommHub and decomposes it into pick tasks. FEFO tag is attached based on item temperature class or expiry constraints.', payload:'{\n  "event": "BusinessOrder.Created",\n  "id": "BO-471",\n  "type": "Outbound",\n  "tags": ["FEFO","HighPriority"]\n}' },
+    { layer:'WMS', title:'Decompose → Pick BT (FEFO)', desc:'WMS creates BT with FEFO tag', isError:false, body:'WMS decomposes the BO into pick BusinessTasks. The FEFO tag is preserved and attached to each BT — it influences catalog routing.', payload:'{\n  "btId": "BT-001",\n  "boType": "Outbound",\n  "btType": "Pick",\n  "tags": ["FEFO","HighPriority"]\n}' },
+    { layer:'WMS', title:'BusinessTask.Ready → PER', desc:'Runtime trigger with FEFO context', isError:false, body:'WMS fires BusinessTask.Ready to PER. The FEFO tag in the payload influences how PER matches the Process Catalog — routing to the FEFO-specific workflow variant.', payload:'{\n  "boId": "BO-471",\n  "btId": "BT-001",\n  "boType": "Outbound",\n  "btType": "Pick",\n  "tags": ["FEFO","HighPriority"],\n  "payload": { "lines": [{ "itemId":"A-100","qty":12 }] }\n}' },
+    { layer:'PER', title:'Catalog match: outbound-pick@fefo', desc:'FEFO tag routes to specialized workflow', isError:false, body:'Priority 100 rule (site + boType + btType + FEFO tag) wins over the generic pick rule at priority 90. processId resolves to outbound-pick@fefo v1.4.2.', payload:'// Priority 100: site=DE01 & Outbound & Pick & FEFO\n//   → "outbound-pick@fefo" v1.4.2  ✓ MATCH\n// Priority 90: site=DE01 & Outbound & Pick\n//   → "outbound-pick@default" (skipped)' },
+    { layer:'PER', title:'AuthorizeProcess → WMS', desc:'Single auth for FEFO pick scope', isError:false, body:'PER calls AuthorizeProcess once with the FEFO processId. WMS validates FEFO eligibility, checks expiry dates, and returns a scope restricting transport to FEFO-approved zones only.', payload:'{\n  "processId": "outbound-pick@fefo",\n  "EOType": "Picking",\n  "inputs": {\n    "boId": "BO-471",\n    "btId": "BT-001"\n  }\n}' },
+    { layer:'WMS', title:'Approve: FEFO zone scope', desc:'Scope restricts transport to expiry-valid zones', isError:false, body:'WMS returns a scope that only permits transport from FEFO-valid zones. PER cannot transport from non-FEFO zones — any deviation aborts the workflow.', payload:'{\n  "approved": true,\n  "processScope": {\n    "allowTransport": ["Z1->STAGING:*"],\n    "allowHUOps": ["Pick","Split"]\n  },\n  "policyHints": { "priority": "High" },\n  "idemKey": "bo#BO-471#bt#BT-001"\n}' },
+    { layer:'PER', title:'Execute FEFO pick workflow', desc:'Capability: Outbound.Pick → FEFO blueprint chain', isError:false, body:'PER resolves Outbound.Pick to the FEFO blueprint chain. Same processId regardless of UI adapter (Terminal/Voice/Light) — execMode selects the HMI adapter inside the workflow.', payload:'"Outbound.Pick" (FEFO) =>\n  FEFO.SelectBin@v2\n  → Guard.ExpiryCheck@v1\n  → Pick.ConfirmQty@v1\n  → Stage.ToConveyor@v1' },
+    { layer:'MFC', title:'Physical pick + staging', desc:'MFC moves picked items to staging area', isError:false, body:'MFC executes the physical pick and moves items to the staging conveyor. Each transport step is validated by PER scope middleware.', payload:'{\n  "event": "HU.Arrived",\n  "huId": "KLT-00391",\n  "location": "STAGING_CONV_01",\n  "timestamp": "2025-10-11T10:12:07Z"\n}' },
+    { layer:'WMS', title:'BusinessTask.Completed', desc:'Pick confirmed, BO state advances', isError:false, body:'PER completes the BT and emits BusinessTask.Completed. WMS advances the BO state. Full FEFO traceability is preserved in telemetry.', payload:'{\n  "event": "BusinessTask.Completed",\n  "btId": "BT-001",\n  "boId": "BO-471",\n  "result": "Pick.Confirmed"\n}' },
+  ]
+},
+{
+  steps: [
+    { layer:'WMS', title:'BusinessTask.Ready → PER', desc:'Normal inbound task trigger', isError:false, body:'Standard trigger — WMS fires BusinessTask.Ready for an inbound HU. Nothing indicates an exception yet.', payload:'{\n  "boId": "BO-2025-000515",\n  "btId": "BT-001",\n  "btType": "Intake",\n  "payload": { "huId": "PAL-9900221", "location": "IP02" }\n}' },
+    { layer:'PER', title:'AuthorizeProcess → WMS', desc:'Auth request for inbound-with-slotting', isError:false, body:'PER calls AuthorizeProcess. WMS validates and returns scope. No indication of NIO yet — the exception is triggered by the Decision.Slotting blueprint outcome.', payload:'{\n  "processId": "inbound-with-slotting",\n  "EOType": "Inbound",\n  "inputs": { "boId": "BO-000515", "btId": "BT-001" }\n}' },
+    { layer:'WMS', title:'Scope approved (incl. NIO buffer)', desc:'Auth passes — scope includes NIO buffer', isError:false, body:'WMS approves and includes the NIO buffer in allowTransport. Forward-looking — the scope anticipates the possible exception path so PER needs no second authorization if NIO is triggered.', payload:'{\n  "approved": true,\n  "processScope": {\n    "allowTransport": [\n      "IP02→AISLE_A*",\n      "IP02→NIO_BUFFER_01"\n    ]\n  },\n  "idemKey": "bo#BO-515#bt#BT-001"\n}' },
+    { layer:'PER', title:'Decision.Slotting executes', desc:'Blueprint chain runs contour + location check', isError:false, body:'PER resolves Decision.Slotting → blueprint chain. PreFilter.ContourWeight checks dimensions. DecideStorageLocation finds a target. Guard.BinFree checks availability.', payload:'PreFilter.ContourWeight@v1  ✓\nDecideStorageLocation@v3   ✓\nGuard.BinFree@v1          ✗ FAIL\n  → onFailure: Exception.NIO' },
+    { layer:'PER', title:'Guard.BinFree fails — NIO triggered', desc:'No valid bin → exception path activates', isError:true, body:'Guard.BinFree returns failure — no valid storage location available. onFailure handler routes to Exception.NIO. PER does NOT call AuthorizeProcess again — NIO_BUFFER_01 was already in processScope.', payload:'{\n  "event": "Guard.Failed",\n  "guard": "BinFree@v1",\n  "reason": "No available bin in target zone",\n  "next": "Exception.NIO"\n}' },
+    { layer:'MFC', title:'Transport to NIO buffer', desc:'HU diverted to NIO_BUFFER_01', isError:true, body:'PER dispatches transport to NIO_BUFFER_01 — already authorized in processScope. No scope violation. MFC executes the diversion. Ops alert raised for manual resolution.', payload:'{\n  "type": "TransportRequest",\n  "huId": "PAL-9900221",\n  "from": "IP02",\n  "to": "NIO_BUFFER_01",\n  "reason": "Exception.NIO"\n}' },
+    { layer:'WMS', title:'BusinessTask.Exception', desc:'BT closed with exception, BO enters Exception state', isError:true, body:'PER emits BusinessTask.Exception. WMS transitions the BO to Exception state. Full telemetry logged. Manual operator action required to resolve.', payload:'{\n  "event": "BusinessTask.Exception",\n  "btId": "BT-001",\n  "boId": "BO-2025-000515",\n  "reason": "Guard.BinFree@v1 failed — NIO diverted",\n  "location": "NIO_BUFFER_01"\n}' },
+  ]
+}
+];
+
+let currentScenario = 0;
+let currentStep = 0;
+
+function setScenario(idx) {
+  currentScenario = idx;
+  currentStep = 0;
+  document.querySelectorAll('.scenario-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  render(); selectStep(0);
+}
+
+function render() {
+  const s = SCENARIOS[currentScenario];
+  const area = document.getElementById('flowArea');
+  area.innerHTML = '';
+  s.steps.forEach((step, i) => {
+    const color = step.isError ? LAYER_COLORS.EXCEPTION : (LAYER_COLORS[step.layer] || '#888');
+    const div = document.createElement('div');
+    div.className = 'step';
+    div.innerHTML = `
+      <div class="step-connector">
+        <div class="connector-line" style="visibility:${i>0?'visible':'hidden'}"></div>
+        <div class="connector-dot" style="border-color:${color};background:${i===currentStep?color:'#fff'}"></div>
+        <div class="connector-line" style="visibility:${i<s.steps.length-1?'visible':'hidden'}"></div>
+      </div>
+      <div class="step-card${i===currentStep?' active':''}${step.isError?' error':''}" onclick="selectStep(${i})">
+        <div class="step-layer" style="color:${color}">${step.layer}</div>
+        <div class="step-title">${step.title}</div>
+        <div class="step-desc">${step.desc}</div>
+      </div>`;
+    area.appendChild(div);
+  });
+  document.getElementById('prog').style.width = Math.round(currentStep/(s.steps.length-1)*100)+'%';
+  document.getElementById('btnPrev').disabled = currentStep===0;
+  document.getElementById('btnNext').disabled = currentStep===s.steps.length-1;
+}
+
+function selectStep(idx) {
+  currentStep = idx;
+  const step = SCENARIOS[currentScenario].steps[idx];
+  const color = step.isError ? LAYER_COLORS.EXCEPTION : (LAYER_COLORS[step.layer]||'#888');
+  document.getElementById('dTitle').textContent = step.title;
+  document.getElementById('dLayer').textContent = step.layer;
+  document.getElementById('dLayer').style.color = color;
+  document.getElementById('dBody').textContent = step.body;
+  const pb = document.getElementById('dPayload');
+  if (step.payload) { pb.style.display='block'; pb.textContent=step.payload; } else { pb.style.display='none'; }
+  render();
+}
+
+function navigate(dir) {
+  const len = SCENARIOS[currentScenario].steps.length;
+  currentStep = Math.max(0, Math.min(len-1, currentStep+dir));
+  selectStep(currentStep);
+}
+
+render(); selectStep(0);
+</script>
+</body>
+</html>
