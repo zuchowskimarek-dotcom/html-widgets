@@ -104,7 +104,7 @@ a:hover{text-decoration:underline;}
   </div>
 </div>
 
-<div class="status-bar" id="statusBar">Showing seed data (14 Mar 2026). Click "Live refresh" to query DocBase — only works when embedded in Notion.</div>
+<div class="status-bar" id="statusBar">Showing seed data (14 Mar 2026). Click "Live refresh" to query DocBase — works in any browser via Cloudflare proxy.</div>
 
 <div class="summary">
   <div class="sum-card"><div class="sum-label">Approved (binding)</div><div class="sum-val" style="color:var(--green)" id="cApproved">—</div></div>
@@ -145,25 +145,15 @@ a:hover{text-decoration:underline;}
 </div>
 
 <div class="footer">
-  Live refresh via Anthropic API + XQ-DocBase MCP · Only works when embedded in Notion (/embed block) ·
-  IPDD: Draft → Reviewed → Approved (binding) · Seed: 14 Mar 2026
+  Live refresh via Cloudflare Worker proxy → Anthropic API + XQ-DocBase MCP · Works in any browser and in Notion embed · Seed: 14 Mar 2026
 </div>
 </div>
 
 <script>
 // ─── Context detection ────────────────────────────────────────────────────
-const isEmbedded = (function() {
-  try { return window.self !== window.top; } catch(e) { return true; }
-})();
-
 const banner = document.getElementById('ctxBanner');
-if (isEmbedded) {
-  banner.className = 'ctx-banner embedded';
-  banner.textContent = '✓ Running inside Notion — Live refresh is available.';
-} else {
-  banner.className = 'ctx-banner standalone';
-  banner.innerHTML = '⚠ Opening this URL directly in a browser shows seed data only. For live refresh, embed this page in Notion using a /embed block.';
-}
+banner.className = 'ctx-banner embedded';
+banner.textContent = '✓ Live refresh available — powered by Cloudflare proxy + XQ-DocBase.';
 
 // ─── Seed data (known state as of 14 Mar 2026) ────────────────────────────
 const SEED = [
@@ -189,11 +179,6 @@ let openIdx = null;
 
 // ─── Live refresh ─────────────────────────────────────────────────────────
 async function refreshFromDocBase() {
-  if (!isEmbedded) {
-    setStatus('error', 'Live refresh only works when this page is embedded in Notion via /embed. Open it there and try again.');
-    return;
-  }
-
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true;
   setStatus('loading', 'Querying DocBase for current IP statuses…');
@@ -221,7 +206,7 @@ Rules for status field:
 Return ONLY the JSON array starting with [.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://anthropic-proxy.zuchowski-marek.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
