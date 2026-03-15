@@ -183,20 +183,33 @@ async function refreshFromDocBase() {
   btn.disabled = true;
   setStatus('loading', 'Querying Claude for updated IP statuses…');
 
-  const userMsg = `You are reviewing the approval status of Implementation Plans for the XyronQ / LogisQ-WES project (Merck IBN Step 1, Macrix).
+  const seedJson = JSON.stringify(IPS.map(ip => ({
+    id: ip.id, title: ip.title, status: ip.status,
+    draft: ip.draft, reviewed: ip.reviewed, approved: ip.approved,
+    boAction: ip.boAction, note: ip.note, conditions: ip.conditions || null
+  })));
 
-Below is the current known state of each IP as of 14 March 2026. Today is ${new Date().toLocaleDateString('de-DE')}. Based on the typical IPDD workflow (Draft → Reviewed → Approved binding), and the project context you know, update the status of any IPs that are likely to have progressed.
+  const userMsg = `IMPORTANT: Do NOT call any tools. Do NOT use get_document or any MCP tools. Return ONLY a JSON array, nothing else.
 
-For IPs that were "conditional" with clear resolution paths, assume they may have moved to "reviewed" or "approved" if enough time has passed. For P0 items that were blocking on-site work (now scheduled 23.3), assume implementation pressure has driven progress.
+You are updating an IP approval tracker for the XyronQ/WES project (Macrix, Merck IBN Step 1).
+Today: ${new Date().toLocaleDateString('de-DE')}. On-site commissioning starts 23.3.2026.
 
-Current state:
-${IPS.map(ip => `- ${ip.id} | ${ip.title} | ${ip.status} | boAction:${ip.boAction}`).join('\n')}
+Here is the last known state of all Implementation Plans:
+${seedJson}
 
-Return ONLY a JSON array — no text before or after, no markdown. Start with [ and end with ].
+Task: Review each IP and return an updated JSON array. Apply these rules:
+- If status is "conditional" and conditions were minor, it may have progressed to "reviewed" or "approved"
+- If status is "draft" for a P0 item with on-site deadline pressure, it may have progressed
+- Keep "approved" items as approved
+- Use your knowledge of this project to make reasonable assessments
 
-Schema per item: {"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}
+Output rules (MANDATORY):
+- Start your response with [ (the first character must be [)
+- End your response with ]
+- No text, no explanation, no markdown, no tool calls — ONLY the JSON array
+- Return all ${IPS.length} items
 
-Return one entry per IP ID above with your best assessment of current status.`;
+Schema: [{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}]`;
 
   try {
     const resp = await fetch('https://anthropic-proxy.zuchowski-marek.workers.dev', {
@@ -205,6 +218,7 @@ Return one entry per IP ID above with your best assessment of current status.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
+        system: 'You are a JSON-only responder. You must NEVER call tools or use MCP. Your entire response must be a single valid JSON array starting with [ and ending with ]. No other text.',
         messages: [{ role: 'user', content: userMsg }]
       })
     });
