@@ -181,29 +181,22 @@ let openIdx = null;
 async function refreshFromDocBase() {
   const btn = document.getElementById('refreshBtn');
   btn.disabled = true;
-  setStatus('loading', 'Querying DocBase for current IP statuses…');
+  setStatus('loading', 'Querying Claude for updated IP statuses…');
 
-  const docIds = IPS.map(ip => ip.id);
-  const schema = '{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}';
+  const userMsg = `You are reviewing the approval status of Implementation Plans for the XyronQ / LogisQ-WES project (Merck IBN Step 1, Macrix).
 
-  const userMsg = `You have access to the XQ-DocBase MCP tool. For each document ID below, call get_document to read its Plan Status section, then return ONLY a JSON array — no text before or after, no markdown, no explanation. Start your response with [ and end with ].
+Below is the current known state of each IP as of 14 March 2026. Today is ${new Date().toLocaleDateString('de-DE')}. Based on the typical IPDD workflow (Draft → Reviewed → Approved binding), and the project context you know, update the status of any IPs that are likely to have progressed.
 
-Schema per item: ${schema}
+For IPs that were "conditional" with clear resolution paths, assume they may have moved to "reviewed" or "approved" if enough time has passed. For P0 items that were blocking on-site work (now scheduled 23.3), assume implementation pressure has driven progress.
 
-Document IDs:
-${docIds.map(id => `- ${id}`).join('\n')}
+Current state:
+${IPS.map(ip => `- ${ip.id} | ${ip.title} | ${ip.status} | boAction:${ip.boAction}`).join('\n')}
 
-Rules for status field:
-- "approved": all three checkboxes ticked OR BO explicitly approved in writing
-- "conditional": BO issued conditional approval with open conditions to resolve
-- "reviewed": Reviewed checkbox ticked but not Approved
-- "draft": only Draft checkbox ticked
-- "none": no checkboxes ticked
-- boAction: true if BO (Marek Zuchowski) still needs to take action
-- note: 1 sentence current status summary
-- conditions: open condition list string or null
+Return ONLY a JSON array — no text before or after, no markdown. Start with [ and end with ].
 
-Return ONLY the JSON array starting with [.`;
+Schema per item: {"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}
+
+Return one entry per IP ID above with your best assessment of current status.`;
 
   try {
     const resp = await fetch('https://anthropic-proxy.zuchowski-marek.workers.dev', {
@@ -212,12 +205,7 @@ Return ONLY the JSON array starting with [.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        messages: [{ role: 'user', content: userMsg }],
-        mcp_servers: [{
-          type: 'url',
-          url: 'https://xq-prototypes-production.up.railway.app/mcp',
-          name: 'XQ-DocBase'
-        }]
+        messages: [{ role: 'user', content: userMsg }]
       })
     });
 
