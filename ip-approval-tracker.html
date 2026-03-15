@@ -104,7 +104,7 @@ a:hover{text-decoration:underline;}
   </div>
 </div>
 
-<div class="status-bar" id="statusBar">Showing seed data (14 Mar 2026). Click "Live refresh" to query DocBase — works in any browser via Cloudflare proxy.</div>
+<div class="status-bar" id="statusBar">Showing seed data (14 Mar 2026). Click "Live refresh" to query XQ-DocBase directly for current IP statuses.</div>
 
 <div class="summary">
   <div class="sum-card"><div class="sum-label">Approved (binding)</div><div class="sum-val" style="color:var(--green)" id="cApproved">—</div></div>
@@ -183,33 +183,27 @@ async function refreshFromDocBase() {
   btn.disabled = true;
   setStatus('loading', 'Querying Claude for updated IP statuses…');
 
-  const seedJson = JSON.stringify(IPS.map(ip => ({
-    id: ip.id, title: ip.title, status: ip.status,
-    draft: ip.draft, reviewed: ip.reviewed, approved: ip.approved,
-    boAction: ip.boAction, note: ip.note, conditions: ip.conditions || null
-  })));
+  const userMsg = `Use the XQ-DocBase get_document tool to fetch each document ID below and read its Plan Status section (checkboxes for Draft, Reviewed, Approved and any BO approval statements).
 
-  const userMsg = `IMPORTANT: Do NOT call any tools. Do NOT use get_document or any MCP tools. Return ONLY a JSON array, nothing else.
+Document IDs to fetch:
+${IPS.map(ip => `- ${ip.id}  (${ip.title})`).join('\n')}
 
-You are updating an IP approval tracker for the XyronQ/WES project (Macrix, Merck IBN Step 1).
-Today: ${new Date().toLocaleDateString('de-DE')}. On-site commissioning starts 23.3.2026.
+After fetching all documents, return ONLY a JSON array. First character must be [, last must be ].
 
-Here is the last known state of all Implementation Plans:
-${seedJson}
+Schema per item:
+{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}
 
-Task: Review each IP and return an updated JSON array. Apply these rules:
-- If status is "conditional" and conditions were minor, it may have progressed to "reviewed" or "approved"
-- If status is "draft" for a P0 item with on-site deadline pressure, it may have progressed
-- Keep "approved" items as approved
-- Use your knowledge of this project to make reasonable assessments
+Status rules:
+- "approved": all three checkboxes ticked OR BO explicitly approved in writing
+- "conditional": BO issued conditional approval with open conditions
+- "reviewed": Reviewed checkbox ticked, Approved not ticked
+- "draft": only Draft checkbox ticked
+- "none": no checkboxes ticked
+- boAction: true if BO (Marek Zuchowski) still needs to act
+- note: 1 sentence summary of current status
+- conditions: open conditions string or null
 
-Output rules (MANDATORY):
-- Start your response with [ (the first character must be [)
-- End your response with ]
-- No text, no explanation, no markdown, no tool calls — ONLY the JSON array
-- Return all ${IPS.length} items
-
-Schema: [{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}]`;
+Return all ${IPS.length} items. JSON array only — nothing else.`;
 
   try {
     const resp = await fetch('https://anthropic-proxy.zuchowski-marek.workers.dev', {
@@ -218,8 +212,13 @@ Schema: [{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"s
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
-        system: 'You are a JSON-only responder. You must NEVER call tools or use MCP. Your entire response must be a single valid JSON array starting with [ and ending with ]. No other text.',
-        messages: [{ role: 'user', content: userMsg }]
+        system: 'You are a JSON-only responder. Use the XQ-DocBase MCP tools to fetch the current status of each Implementation Plan document. After fetching, your ENTIRE response must be a single valid JSON array starting with [ and ending with ]. No prose, no explanation, no markdown — only the JSON array.',
+        messages: [{ role: 'user', content: userMsg }],
+        mcp_servers: [{
+          type: 'url',
+          url: 'https://xq-prototypes-production.up.railway.app/mcp',
+          name: 'XQ-DocBase'
+        }]
       })
     });
 
