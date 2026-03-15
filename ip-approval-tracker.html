@@ -4,249 +4,220 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IP Approval Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#f7f6f2;--surface:#fff;--ink:#141412;--ink2:#6b6a65;--ink3:#a8a79f;
-  --rule:rgba(20,20,18,.09);
-  --green:#1D9E75;--green-bg:#E1F5EE;--green-dk:#085041;
-  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-dk:#633806;
-  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-dk:#0C447C;
-  --red:#E24B4A;--red-bg:#FCEBEB;--red-dk:#791F1F;
-  --gray-bg:#F1EFE8;--gray-dk:#444441;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--ink);min-height:100vh;padding:1.5rem 1rem;}
-.wrap{max-width:980px;margin:0 auto;}
-.hdr{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1.5px solid var(--ink);padding-bottom:.85rem;margin-bottom:1.25rem;}
-.hdr-title{font-size:15px;font-weight:500;}
-.hdr-right{display:flex;align-items:center;gap:10px;}
-.refresh-btn{font-size:10px;padding:3px 12px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;letter-spacing:.05em;}
-.refresh-btn:hover{background:#333;}
-.sub{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;}
-.status-bar{font-size:10px;color:var(--green-dk);padding:.4rem .7rem;background:var(--green-bg);border:1px solid rgba(16,185,129,.2);margin-bottom:1rem;display:flex;align-items:center;gap:6px;}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem;}
-.sum-card{border:1px solid var(--rule);padding:.65rem .85rem;background:var(--surface);}
-.sum-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:3px;}
-.sum-val{font-size:22px;font-weight:500;}
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
-.f-btn{font-size:10px;padding:3px 10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink2);cursor:pointer;letter-spacing:.04em;}
-.f-btn.on{background:var(--ink);color:#fff;border-color:var(--ink);}
-.tbl-wrap{border:1px solid var(--rule);overflow-x:auto;margin-bottom:1.25rem;background:var(--surface);}
-table{width:100%;border-collapse:collapse;min-width:700px;}
-th{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:500;padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;color:var(--ink2);background:#faf9f5;}
-td{padding:8px 12px;border-bottom:1px solid var(--rule);font-size:11px;vertical-align:middle;}
-tr:last-child td{border-bottom:none;}
-tr.highlight td{background:#fffef8;}
-tr.clickable{cursor:pointer;}
-tr.clickable:hover td{background:rgba(20,20,18,.02);}
-.chip{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 8px;border-radius:2px;}
-.chip.approved{background:var(--green-bg);color:var(--green-dk);}
-.chip.conditional{background:var(--amber-bg);color:var(--amber-dk);}
-.chip.reviewed{background:var(--blue-bg);color:var(--blue-dk);}
-.chip.draft{background:var(--gray-bg);color:var(--gray-dk);}
-.chip.none{background:var(--red-bg);color:var(--red-dk);}
-.pipe{display:flex;align-items:center;}
-.pdot{width:20px;height:20px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:500;flex-shrink:0;}
-.pdot.done{background:var(--green);border-color:var(--green);color:#fff;}
-.pdot.pending{background:#fff;border-color:var(--rule);color:var(--ink3);}
-.pline{width:10px;height:1.5px;background:var(--rule);flex-shrink:0;}
-.pline.done{background:var(--green);}
-.pri{font-size:9px;font-weight:500;padding:1px 6px;border-radius:2px;}
-.pri.p0{background:var(--red-bg);color:var(--red-dk);}
-.pri.p1{background:var(--amber-bg);color:var(--amber-dk);}
-.pri.p2{background:var(--blue-bg);color:var(--blue-dk);}
-.owner{font-size:10px;color:var(--ink2);}
-a{color:var(--blue);text-decoration:none;font-size:10px;}
-a:hover{text-decoration:underline;}
-.drawer{border:1px solid var(--rule);background:var(--surface);padding:.85rem 1rem;margin-bottom:1.25rem;display:none;}
-.drawer.open{display:block;}
-.d-title{font-size:13px;font-weight:500;margin-bottom:8px;}
-.d-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
-.d-cell{background:var(--bg);padding:.5rem .7rem;}
-.d-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:3px;}
-.d-val{font-size:11px;font-weight:500;}
-.d-note{font-size:11px;color:var(--ink2);line-height:1.6;border-top:1px solid var(--rule);padding-top:8px;margin-top:4px;}
-.footer{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;border-top:1px solid var(--rule);padding-top:10px;margin-top:1rem;}
+:root{--bg:#f7f6f2;--srf:#fff;--ink:#141412;--ink2:#6b6a65;--ink3:#a8a79f;--rule:rgba(20,20,18,.09);--grn:#1D9E75;--grn-bg:#E1F5EE;--grn-dk:#085041;--amb:#BA7517;--amb-bg:#FAEEDA;--amb-dk:#633806;--blu:#378ADD;--blu-bg:#E6F1FB;--blu-dk:#0C447C;--red:#E24B4A;--red-bg:#FCEBEB;--red-dk:#791F1F;--gry-bg:#F1EFE8;--gry-dk:#444441}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Mono',ui-monospace,'Cascadia Code','Fira Code',monospace;background:var(--bg);color:var(--ink);min-height:100vh;padding:1.5rem 1rem}
+.wrap{max-width:980px;margin:0 auto}
+.hdr{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1.5px solid var(--ink);padding-bottom:.85rem;margin-bottom:1.25rem}
+.hdr-t{font-size:15px;font-weight:500}.sub{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.btn{font-size:10px;padding:3px 12px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;letter-spacing:.05em;font-family:inherit}.btn:hover{background:#333}.btn:disabled{opacity:.5;cursor:wait}
+.sbar{font-size:10px;padding:.4rem .7rem;border:1px solid;margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.sbar.ok{color:var(--grn-dk);background:var(--grn-bg);border-color:rgba(16,185,129,.2)}
+.sbar.cache{color:var(--amb-dk);background:var(--amb-bg);border-color:rgba(186,117,23,.2)}
+.sbar.ld{color:var(--blu-dk);background:var(--blu-bg);border-color:rgba(55,138,221,.2)}
+.sbar.err{color:var(--red-dk);background:var(--red-bg);border-color:rgba(226,75,74,.2)}
+.spin{display:inline-block;width:10px;height:10px;border:1.5px solid var(--blu);border-top-color:transparent;border-radius:50%;animation:sp .6s linear infinite;margin-right:4px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem}
+.sc{border:1px solid var(--rule);padding:.65rem .85rem;background:var(--srf)}.sc-l{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:3px}.sc-v{font-size:22px;font-weight:500}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.fb{font-size:10px;padding:3px 10px;border:1px solid var(--rule);background:var(--srf);color:var(--ink2);cursor:pointer;letter-spacing:.04em;font-family:inherit}.fb.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tw{border:1px solid var(--rule);overflow-x:auto;margin-bottom:1.25rem;background:var(--srf)}
+table{width:100%;border-collapse:collapse;min-width:700px}
+th{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:500;padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;color:var(--ink2);background:#faf9f5}
+td{padding:8px 12px;border-bottom:1px solid var(--rule);font-size:11px;vertical-align:middle}
+tr:last-child td{border-bottom:none}tr.hl td{background:#fffef8}tr.ck{cursor:pointer}tr.ck:hover td{background:rgba(20,20,18,.02)}
+.chip{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 8px;border-radius:2px}
+.c-ap{background:var(--grn-bg);color:var(--grn-dk)}.c-co{background:var(--amb-bg);color:var(--amb-dk)}.c-rv{background:var(--blu-bg);color:var(--blu-dk)}.c-dr{background:var(--gry-bg);color:var(--gry-dk)}.c-no{background:var(--red-bg);color:var(--red-dk)}
+.pipe{display:flex;align-items:center}
+.pdot{width:20px;height:20px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:500;flex-shrink:0}
+.pdot.done{background:var(--grn);border-color:var(--grn);color:#fff}.pdot.pend{background:#fff;border-color:var(--rule);color:var(--ink3)}
+.pln{width:10px;height:1.5px;background:var(--rule);flex-shrink:0}.pln.done{background:var(--grn)}
+.pri{font-size:9px;font-weight:500;padding:1px 6px;border-radius:2px}.pri.p0{background:var(--red-bg);color:var(--red-dk)}.pri.p1{background:var(--amb-bg);color:var(--amb-dk)}.pri.p2{background:var(--blu-bg);color:var(--blu-dk)}
+.own{font-size:10px;color:var(--ink2)}
+a{color:var(--blu);text-decoration:none;font-size:10px}a:hover{text-decoration:underline}
+.detail{border:1px solid var(--rule);background:var(--srf);padding:.85rem 1rem;margin-bottom:1.25rem;animation:fi .15s ease}
+@keyframes fi{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.d-hd{display:flex;justify-content:space-between;align-items:center}.d-title{font-size:13px;font-weight:500;margin-bottom:8px}
+.d-x{background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:4px}
+.d-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.d-cell{background:var(--bg);padding:.5rem .7rem}.d-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:3px}.d-val{font-size:11px;font-weight:500}
+.d-note{font-size:11px;color:var(--ink2);line-height:1.6;border-top:1px solid var(--rule);padding-top:8px;margin-top:4px}
+.footer{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;border-top:1px solid var(--rule);padding-top:10px;margin-top:1rem}
+.err-box{padding:.75rem 1rem;border:1px solid rgba(226,75,74,.3);background:var(--red-bg);color:var(--red-dk);font-size:10px;margin-bottom:1rem;line-height:1.5}
+.err-box pre{font-size:9px;margin-top:6px;white-space:pre-wrap;word-break:break-all;max-height:80px;overflow:auto;background:rgba(0,0,0,.04);padding:4px}
 </style>
 </head>
 <body>
 <div class="wrap">
-
-<div class="hdr">
-  <div>
-    <div class="hdr-title">Implementation Plan Approval Tracker</div>
-    <div class="sub" style="margin-top:3px">XyronQ / WES · LogisQ-WES · IPDD governance · BO: Marek Zuchowski · TO: Rustam Ashurov</div>
+  <div class="hdr">
+    <div>
+      <div class="hdr-t">Implementation Plan Approval Tracker</div>
+      <div class="sub" style="margin-top:3px">XyronQ / WES · LogisQ-WES · IPDD governance · BO: Marek Zuchowski · TO: Rustam Ashurov</div>
+    </div>
+    <div class="hdr-r">
+      <span class="sub" id="hdrMeta">Cache · 15.03.2026 19:30</span>
+      <button class="btn" id="refreshBtn" onclick="fetchLive()">Refresh live</button>
+    </div>
   </div>
-  <div class="hdr-right">
-    <span class="sub" id="lastUpdated">Live data · 15 Mar 2026</span>
-    <button class="refresh-btn" onclick="requestUpdate()">Request update</button>
+  <div id="statusBar" class="sbar cache">◎ Showing cached data — click Refresh for live</div>
+  <div id="errorBox" style="display:none"></div>
+  <div class="summary">
+    <div class="sc"><div class="sc-l">Approved (binding)</div><div class="sc-v" style="color:var(--grn)" id="cAp">—</div></div>
+    <div class="sc"><div class="sc-l">Conditional / Reviewed</div><div class="sc-v" style="color:var(--amb)" id="cPn">—</div></div>
+    <div class="sc"><div class="sc-l">Draft / Not started</div><div class="sc-v" style="color:var(--ink2)" id="cDr">—</div></div>
+    <div class="sc"><div class="sc-l">Needs BO action</div><div class="sc-v" style="color:var(--red)" id="cBo">—</div></div>
   </div>
-</div>
-
-<div class="status-bar">✓ Data verified live from XQ-DocBase · 15 Mar 2026 · 14 IPs · To refresh: click "Request update"</div>
-
-<div class="summary">
-  <div class="sum-card"><div class="sum-label">Approved (binding)</div><div class="sum-val" style="color:var(--green)" id="cApproved">—</div></div>
-  <div class="sum-card"><div class="sum-label">Conditional / Reviewed</div><div class="sum-val" style="color:var(--amber)" id="cPending">—</div></div>
-  <div class="sum-card"><div class="sum-label">Draft / Not started</div><div class="sum-val" style="color:var(--ink2)" id="cDraft">—</div></div>
-  <div class="sum-card"><div class="sum-label">Needs BO action</div><div class="sum-val" style="color:var(--red)" id="cAction">—</div></div>
-</div>
-
-<div class="filters">
-  <button class="f-btn on" onclick="setFilter('all',this)">All</button>
-  <button class="f-btn" onclick="setFilter('approved',this)">Approved</button>
-  <button class="f-btn" onclick="setFilter('conditional',this)">Conditional</button>
-  <button class="f-btn" onclick="setFilter('reviewed',this)">Reviewed</button>
-  <button class="f-btn" onclick="setFilter('draft',this)">Draft</button>
-  <button class="f-btn" onclick="setFilter('action',this)">Needs BO action</button>
-</div>
-
-<div class="tbl-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th style="min-width:230px">Implementation Plan</th>
-        <th>Priority</th>
-        <th>Pipeline</th>
-        <th>Status</th>
-        <th>Module owner</th>
-        <th>BO action</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
-</div>
-
-<div class="drawer" id="drawer">
-  <div class="d-title" id="d-title"></div>
-  <div class="d-grid" id="d-grid"></div>
-  <div class="d-note" id="d-note"></div>
-</div>
-
-<div class="footer">
-  Data source: XQ-DocBase (Implementation plans database) · IPDD: Draft → Reviewed → Approved (binding) · Updated by Claude on request
-</div>
+  <div class="filters" id="filterBar"></div>
+  <div id="detailPanel"></div>
+  <div class="tw">
+    <table><thead><tr><th style="min-width:230px">Implementation Plan</th><th>Priority</th><th>Pipeline</th><th>Status</th><th>Module owner</th><th>BO action</th></tr></thead><tbody id="tbody"></tbody></table>
+  </div>
+  <div class="footer">Data source: XQ-DocBase → Anthropic API (semantic_search, selectedOnly) · IPDD: Draft → Reviewed → Approved (binding) · Auto-fetches on load</div>
 </div>
 
 <script>
-const IPS = [
-  { id:'309a975d-2ff8-8030-8436-df089cf63151', title:'Transport Error Handling', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'MFC / Walczak, Michno', boAction:false, url:'https://www.notion.so/309a975d2ff880308436df089cf63151', note:'Fully approved (binding). Transport error recovery, max retry policy, SPS error codes. Implementation report exists.', conditions:null },
-  { id:'31fa975d-2ff8-8030-bef6-d27cbd91bdf8', title:'Transport Node Roles — BO Approval', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'Transport FE / Szczepanik', boAction:false, url:'https://www.notion.so/31fa975d2ff88030bef6d27cbd91bdf8', note:'BO GO issued 13.3.2026. Multi-selection on custom TransportNode properties. All required actions resolved.', conditions:null },
-  { id:'4c9d9d25-dd4a-455b-bd60-e6a92b6107aa', title:'EventHandle multi-configuration (multi-output)', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'XQ / Rustam', boAction:false, url:'https://www.notion.so/4c9d9d25dd4a455bbd60e6a92b6107aa', note:'Fully approved (binding). Extends EventHandle block to support multiple output configurations.', conditions:null },
-  { id:'3cc8d3a7-6b89-4dad-ad9e-14941549ea7f', title:'WMS AutoStore Bin Selection Optimization', priority:'p0', draft:false, reviewed:false, approved:true, status:'approved', module:'WMS / Magdziarek', boAction:false, url:'https://www.notion.so/3cc8d3a76b894dad9e14941549ea7f', note:'Approved (binding). Weighted scoring algorithm for Merck AutoStore conveyor bin selection.', conditions:null },
-  { id:'31aa975d-2ff8-80bc-862c-c083fc540108', title:'RP Telegram Handling', priority:'p0', draft:true, reviewed:false, approved:true, status:'approved', module:'MFC / Walczak', boAction:false, url:'https://www.notion.so/31aa975d2ff880bc862cc083fc540108', note:'BO approved 6.3.2026. E2E test passed D8 (12.3). Implementation complete.', conditions:null },
-  { id:'311a975d-2ff8-8067-a8fb-fbc4ecb88e21', title:'HMI NIO Dialog', priority:'p1', draft:false, reviewed:true, approved:false, status:'reviewed', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/311a975d2ff880678afbfbc4ecb88e21', note:'Reviewed by TO. Both TO and BO marked Pending. Awaiting BO approval.', conditions:null },
-  { id:'319a975d-2ff8-80f8-bc5a-f0d4be6f9152', title:'Process Outcomes', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS / Magdziarek, Michno', boAction:true, url:'https://www.notion.so/318a975d2ff880e1b240f15f27c868ad', note:'Draft only in document. BO conditional approval issued 4.3 — C1–C5 must be resolved by authors → TO confirms → binding.', conditions:'C1: Process scope clarification · C2–C5: Technical gaps' },
-  { id:'313a975d-2ff8-8042-b9b3-fe048ae74368', title:'HMI Inventory Overview', priority:'p0', draft:true, reviewed:false, approved:false, status:'draft', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/313a975d2ff88042b9b3fe048ae74368', note:'Draft only in document. BO conditional approval issued — C1 critical: clarify Lagerspiegel scope.', conditions:'C1: Lagerspiegel scope (CRITICAL) · C2–C5: Owner, refresh, filtering gaps' },
-  { id:'31ea975d-2ff8-800f-886c-e674358341e4', title:'HMI Pallet Storage (Lagerspiegel)', priority:'p0', draft:true, reviewed:false, approved:false, status:'draft', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/31ea975d2ff8800f886ce674358341e4', note:'Draft only. Depends on Inventory Correction completion. Target delivery 22.3.', conditions:null },
-  { id:'311a975d-2ff8-80e8-b739-e9284ae111db', title:'IntegrationEvents in WES', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS+MFC / Michno, Walczak', boAction:true, url:'https://www.notion.so/311a975d2ff880e8b739e9284ae111db', note:'Draft only. TO: Rustam Ashurov, BO: Marek Zuchowski listed. Awaiting both approvals.', conditions:null },
-  { id:'321a975d-2ff8-805a-94dc-c6d84d4663ab', title:'Height Classes', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS / team', boAction:true, url:'https://www.notion.so/321a975d2ff8805a94dcc6d84d4663ab', note:'Draft only. Addresses hardcoded height class mapping — needs user-configurable source.', conditions:null },
-  { id:'31ba975d-2ff8-8009-b839-e81abf442469', title:'Editable Edges in Process Layer', priority:'p2', draft:true, reviewed:false, approved:false, status:'draft', module:'XQ / team', boAction:false, url:'https://www.notion.so/31ba975d2ff88009b839e81abf442469', note:'Draft only. Transport Layer deferred. Lower priority, not blocking on-site.', conditions:null },
-  { id:'20b697a1-fbce-4e81-94f8-3da242dcc5b1', title:'Partial (Incremental) Deployment', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WARP / Szczepanik', boAction:true, url:'https://www.notion.so/20b697a1fbce4e8194f83da242dcc5b1', note:'Draft v0.1 (10.3). Delta-only WARP deployment. TO and BO both TBD.', conditions:null },
-  { id:'311a975d-2ff8-80ad-b93f-f7e1b61aa72e', title:'Import and Export Solution Backup', priority:'p1', draft:false, reviewed:false, approved:false, status:'none', module:'WARP / team', boAction:true, url:'https://www.notion.so/311a975d2ff880adb93ff7e1b61aa72e', note:'No checkboxes ticked. TO and BO both TBD. Full IPDD cycle needed before implementation.', conditions:null },
+const MCP_URL='https://xq-prototypes-production.up.railway.app/mcp';
+const SYSTEM=`You are a data extraction agent with access to XQ-DocBase MCP.
+
+Your ONLY task: call semantic_search ONCE with these exact parameters:
+  query: "plan status draft reviewed approved binding"
+  selectedOnly: true
+  limit: 30
+
+Then from the results, produce a JSON array of Implementation Plans.
+
+RULES:
+- Make exactly ONE tool call (semantic_search), then produce the JSON.
+- Include documents whose title contains "Implementation Plan" OR "BO-Approval" OR "BO Approval Statement".
+- Group BO-Approval docs with their matching plan. Use BO-Approval decision to determine true status.
+- Output ONLY a raw JSON array — no markdown, no backticks, no explanation.
+
+Each object:
+{"id":"<documentId of PLAN>","title":"<clean title>","status":"approved|conditional|reviewed|draft|none","priority":"p0|p1|p2","draft":true/false,"reviewed":true/false,"approved":true/false,"module":"<Module / Person>","boAction":true/false,"note":"<1-2 sentence>","conditions":"<string or null>"}
+
+Status from chunkPreview:
+- "[x] Approved (binding)" → "approved"
+- "[x] Reviewed" not Approved → "reviewed"
+- "[x] Draft" only → "draft"
+- No checkboxes → "none"
+- BO-Approval "Conditionally Approved" → "conditional"
+- BO-Approval "GO"/"Approved" → overrides to "approved"
+
+Priority: p0=Merck critical path, p1=important, p2=lower.
+boAction=true if BO hasn't given final approval.`;
+
+const CACHE_DATE='15.03.2026 19:30';
+const CACHE=[
+  {id:"309a975d-2ff8-8030-8436-df089cf63151",title:"Transport Error Handling",priority:"p1",draft:true,reviewed:true,approved:true,status:"approved",module:"MFC / Walczak, Michno",boAction:false,note:"Fully approved (binding). Implementation report exists.",conditions:null},
+  {id:"31ea975d-2ff8-80c0-8ff7-dbf9caa951d0",title:"Transport Node Roles",priority:"p1",draft:true,reviewed:true,approved:true,status:"approved",module:"Transport FE / Szczepanik",boAction:false,note:"BO GO 13.3.2026.",conditions:null},
+  {id:"4c9d9d25-dd4a-455b-bd60-e6a92b6107aa",title:"EventHandle Multi-Configuration",priority:"p1",draft:true,reviewed:true,approved:true,status:"approved",module:"XQ / Rustam",boAction:false,note:"Fully approved (binding).",conditions:null},
+  {id:"3cc8d3a7-6b89-4dad-ad9e-14941549ea7f",title:"WMS AutoStore Bin Selection",priority:"p0",draft:true,reviewed:true,approved:true,status:"approved",module:"WMS / Tomiak",boAction:false,note:"Approved with conditions. Weighted scoring algorithm.",conditions:null},
+  {id:"31aa975d-2ff8-80bc-862c-c083fc540108",title:"RP Telegram Handling",priority:"p0",draft:true,reviewed:false,approved:true,status:"approved",module:"MFC / Walczak",boAction:false,note:"BO approved 6.3.2026. Implementation complete.",conditions:null},
+  {id:"31ba975d-2ff8-8009-b839-e81abf442469",title:"Editable Edges in Process Layer",priority:"p2",draft:true,reviewed:false,approved:true,status:"approved",module:"XQ / Michno",boAction:false,note:"BO GO without conditions 10.3.2026.",conditions:null},
+  {id:"313a975d-2ff8-8042-b9b3-fe048ae74368",title:"HMI Inventory Overview",priority:"p0",draft:true,reviewed:true,approved:true,status:"conditional",module:"HMI / Mikolaj",boAction:true,note:"BO conditional 4.3. C1: Lagerspiegel scope.",conditions:"C1: Lagerspiegel scope (CRITICAL) · C2–C5: Owner, refresh, filtering, acceptance"},
+  {id:"319a975d-2ff8-80f8-bc5a-f0d4be6f9152",title:"Process Outcomes",priority:"p1",draft:true,reviewed:false,approved:false,status:"conditional",module:"WMS / Magdziarek, Michno",boAction:true,note:"Conditionally approved 4.3. C1–C5 pending.",conditions:"C1: Status Enum Mapping · C2–C5: Technical gaps"},
+  {id:"31ea975d-2ff8-800f-886c-e674358341e4",title:"HMI Pallet Storage (Lagerspiegel)",priority:"p0",draft:true,reviewed:false,approved:false,status:"conditional",module:"HMI / Mikolaj",boAction:true,note:"BO GO with conditions. Depends on shared components.",conditions:"C1: API deadlines · C2: Shared components"},
+  {id:"311a975d-2ff8-8067-a8fb-fbc4ecb88e21",title:"HMI NIO Dialog",priority:"p1",draft:false,reviewed:true,approved:false,status:"reviewed",module:"HMI / Mikolaj",boAction:true,note:"Reviewed. TO and BO both pending.",conditions:null},
+  {id:"311a975d-2ff8-80e8-b739-e9284ae111db",title:"IntegrationEvents in WES",priority:"p1",draft:true,reviewed:false,approved:false,status:"draft",module:"WMS+MFC / Michno, Walczak",boAction:true,note:"Draft only. Awaiting both approvals.",conditions:null},
+  {id:"321a975d-2ff8-805a-94dc-c6d84d4663ab",title:"Height Classes",priority:"p1",draft:true,reviewed:false,approved:false,status:"draft",module:"WMS / team",boAction:true,note:"Draft. Hardcoded height class mapping.",conditions:null},
+  {id:"321a975d-2ff8-8029-b393-efda8401abcc",title:"Manual Transport",priority:"p1",draft:true,reviewed:false,approved:false,status:"draft",module:"PER/WMS/HMI/MFC / Michno",boAction:true,note:"Draft (13.3). Via PER orchestration.",conditions:null},
+  {id:"20b697a1-fbce-4e81-94f8-3da242dcc5b1",title:"Partial (Incremental) Deployment",priority:"p1",draft:true,reviewed:false,approved:false,status:"draft",module:"WARP / Szczepanik",boAction:true,note:"Draft v0.1. Delta-only WARP deployment.",conditions:null},
+  {id:"306a975d-2ff8-8066-b001-ced4d6a47f8b",title:"Telegram Viewer in CommunicationHUB",priority:"p1",draft:true,reviewed:false,approved:false,status:"draft",module:"CH / Walczak",boAction:false,note:"In progress. BO approved. Implementation ongoing.",conditions:null},
+  {id:"d2f3f69a-0377-461e-9ce2-d93f32e5d442",title:"WARP Versioned wes-template.json",priority:"p1",draft:false,reviewed:false,approved:false,status:"none",module:"WARP / Szczepanik",boAction:true,note:"No checkboxes ticked. BO conditional exists.",conditions:"C1: Version format · C2: Cross-module impact · C3: Validation strategy"},
+  {id:"311a975d-2ff8-80ad-b93f-f7e1b61aa72e",title:"Import and Export Solution Backup",priority:"p1",draft:false,reviewed:false,approved:false,status:"none",module:"WARP / team",boAction:true,note:"No checkboxes ticked. Full IPDD cycle needed.",conditions:null},
+  {id:"318a975d-2ff8-80e1-b240-f15f27c868ad",title:"Process Outcomes (Plan doc)",priority:"p1",draft:true,reviewed:false,approved:false,status:"draft",module:"WMS / Michno",boAction:true,note:"Draft in plan doc. BO conditional pending.",conditions:null},
 ];
 
-let currentFilter = 'all';
-let openIdx = null;
+let ips=CACHE,isLive=false,currentFilter='all',openIp=null,loading=false,elapsed=0,timer=null,lastError=null;
+const SO={approved:0,conditional:1,reviewed:2,draft:3,none:4},PO={p0:0,p1:1,p2:2};
+const SMAP={approved:['ap','Approved'],conditional:['co','Conditional'],reviewed:['rv','Reviewed'],draft:['dr','Draft'],none:['no','Not started']};
+const SLABEL={approved:'Approved (binding)',conditional:'Conditionally approved',reviewed:'Reviewed — awaiting approval',draft:'Draft',none:'Not started'};
 
-const STATUS_ORDER = { approved:0, conditional:1, reviewed:2, draft:3, none:4 };
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function chip(s){const[c,l]=SMAP[s]||SMAP.draft;return`<span class="chip c-${c}">${l}</span>`}
+function pri(p){return`<span class="pri ${p||'p2'}">${(p||'p2').toUpperCase()}</span>`}
+function dot(ok,l){return`<div class="pdot ${ok?'done':'pend'}">${ok?'✓':l}</div>`}
+function ln(ok){return`<div class="pln${ok?' done':''}"></div>`}
+function pipe(ip){return`<div class="pipe">${dot(ip.draft,'D')}${ln(ip.draft)}${dot(ip.reviewed,'R')}${ln(ip.reviewed)}${dot(ip.approved,'A')}</div>`}
 
-function requestUpdate() {
-  if (typeof sendPrompt === 'function') {
-    sendPrompt('Please refresh the IP Approval Tracker with the latest data from XQ-DocBase and regenerate the HTML.');
+function renderAll(){
+  document.getElementById('cAp').textContent=ips.filter(i=>i.status==='approved').length;
+  document.getElementById('cPn').textContent=ips.filter(i=>i.status==='conditional'||i.status==='reviewed').length;
+  document.getElementById('cDr').textContent=ips.filter(i=>i.status==='draft'||i.status==='none').length;
+  document.getElementById('cBo').textContent=ips.filter(i=>i.boAction).length;
+
+  const fs=[{k:'all',l:'All'},{k:'approved',l:'Approved'},{k:'conditional',l:'Conditional'},{k:'reviewed',l:'Reviewed'},{k:'draft',l:'Draft'},{k:'action',l:'Needs BO action'}];
+  document.getElementById('filterBar').innerHTML=fs.map(f=>`<button class="fb${currentFilter===f.k?' on':''}" onclick="setFilter('${f.k}')">${f.l}</button>`).join('');
+
+  const bar=document.getElementById('statusBar'),btn=document.getElementById('refreshBtn'),meta=document.getElementById('hdrMeta'),errBox=document.getElementById('errorBox');
+  if(loading){
+    bar.className='sbar ld';
+    const ph=elapsed<8?'Connecting to XQ-DocBase…':elapsed<20?'Agent running semantic search…':elapsed<40?'Parsing plan statuses…':elapsed<70?'Still working — MCP round-trip…':'Taking longer than expected…';
+    bar.innerHTML=`<span class="spin"></span>${ph}`;
+    meta.textContent=`Fetching… ${elapsed}s`;
+    btn.disabled=true;btn.textContent='Fetching…';
   } else {
-    alert('To refresh: open this page in Claude.ai and ask "Please refresh the IP Approval Tracker with latest data from XQ-DocBase".');
+    btn.disabled=false;btn.textContent='Refresh live';
+    if(isLive&&!lastError){bar.className='sbar ok';bar.innerHTML=`✓ Live data from XQ-DocBase · ${ips.length} IPs`}
+    else if(isLive&&lastError){bar.className='sbar err';bar.innerHTML='✕ Refresh failed — showing previous live data'}
+    else{bar.className='sbar cache';bar.innerHTML=`◎ Showing cached data (${CACHE_DATE})${lastError?' — live fetch failed':' — click Refresh for live'}`}
+    meta.textContent=`${isLive?'Live':'Cache'} · ${isLive?new Date().toLocaleDateString('de-DE'):CACHE_DATE}`;
   }
-}
+  if(lastError&&!loading){errBox.style.display='block';errBox.className='err-box';errBox.innerHTML=`Live fetch failed.<pre>${esc(lastError)}</pre><button class="btn" onclick="fetchLive()" style="margin-top:6px">Retry</button>`}
+  else{errBox.style.display='none'}
 
-function pipeDot(done, label) {
-  return `<div class="pdot ${done?'done':'pending'}">${done?'✓':label}</div>`;
-}
-function pipeHtml(ip) {
-  return `<div class="pipe">
-    ${pipeDot(ip.draft,'D')}<div class="pline${ip.draft?' done':''}"></div>
-    ${pipeDot(ip.reviewed,'R')}<div class="pline${ip.reviewed?' done':''}"></div>
-    ${pipeDot(ip.approved,'A')}
-  </div>`;
-}
-function statusChip(s) {
-  const m={approved:['approved','Approved'],conditional:['conditional','Conditional'],reviewed:['reviewed','Reviewed'],draft:['draft','Draft'],none:['none','Not started']};
-  const [cls,lbl]=m[s]||['draft','Draft'];
-  return `<span class="chip ${cls}">${lbl}</span>`;
-}
-function priLabel(p) {
-  return `<span class="pri ${p||'p2'}">${(p||'p2').toUpperCase()}</span>`;
-}
-
-function renderAll() {
-  document.getElementById('cApproved').textContent = IPS.filter(ip=>ip.status==='approved').length;
-  document.getElementById('cPending').textContent  = IPS.filter(ip=>ip.status==='conditional'||ip.status==='reviewed').length;
-  document.getElementById('cDraft').textContent    = IPS.filter(ip=>ip.status==='draft'||ip.status==='none').length;
-  document.getElementById('cAction').textContent   = IPS.filter(ip=>ip.boAction).length;
-  renderTable();
-}
-
-function renderTable() {
-  const filtered = IPS
-    .filter(ip => currentFilter==='all'?true:currentFilter==='action'?ip.boAction:ip.status===currentFilter)
-    .sort((a,b)=>{
-      const pd={p0:0,p1:1,p2:2};
-      const diff=(pd[a.priority]??2)-(pd[b.priority]??2);
-      return diff!==0?diff:(STATUS_ORDER[a.status]??3)-(STATUS_ORDER[b.status]??3);
-    });
-
+  const filtered=ips.filter(ip=>currentFilter==='all'?true:currentFilter==='action'?ip.boAction:ip.status===currentFilter).sort((a,b)=>{const d=(PO[a.priority]??2)-(PO[b.priority]??2);return d!==0?d:(SO[a.status]??3)-(SO[b.status]??3)});
   const tbody=document.getElementById('tbody');
-  tbody.innerHTML='';
-  filtered.forEach(ip=>{
-    const realIdx=IPS.indexOf(ip);
-    const tr=document.createElement('tr');
-    tr.className='clickable'+(ip.boAction?' highlight':'');
-    tr.innerHTML=`
-      <td onclick="toggleDrawer(${realIdx})">
-        <div style="font-weight:500;font-size:11px;margin-bottom:2px">${ip.title}</div>
-        ${ip.url?`<a href="${ip.url}" target="_blank" onclick="event.stopPropagation()">Open in Notion →</a>`:''}
-      </td>
-      <td onclick="toggleDrawer(${realIdx})">${priLabel(ip.priority)}</td>
-      <td onclick="toggleDrawer(${realIdx})">${pipeHtml(ip)}</td>
-      <td onclick="toggleDrawer(${realIdx})">${statusChip(ip.status)}</td>
-      <td onclick="toggleDrawer(${realIdx})"><span class="owner">${ip.module||'—'}</span></td>
-      <td onclick="toggleDrawer(${realIdx})" style="font-size:10px;color:${ip.boAction?'var(--red-dk)':'var(--green)'}">${ip.boAction?'⚠ Needs action':'✓ OK'}</td>`;
-    tbody.appendChild(tr);
-  });
-  if(!filtered.length){
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td colspan="6" style="text-align:center;color:var(--ink3);padding:1.5rem;font-size:11px">No items match this filter.</td>`;
-    tbody.appendChild(tr);
-  }
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--ink3);padding:1.5rem;font-size:11px">No items match this filter.</td></tr>';return}
+  tbody.innerHTML=filtered.map(ip=>{const idx=ips.indexOf(ip);return`<tr class="ck${ip.boAction?' hl':''}" onclick="toggleDetail(${idx})"><td><div style="font-weight:500;font-size:11px;margin-bottom:2px">${esc(ip.title)}</div><a href="https://www.notion.so/${ip.id.replace(/-/g,'')}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open in Notion →</a></td><td>${pri(ip.priority)}</td><td>${pipe(ip)}</td><td>${chip(ip.status)}</td><td><span class="own">${esc(ip.module||'—')}</span></td><td style="font-size:10px;color:${ip.boAction?'var(--red-dk)':'var(--grn)'}">${ip.boAction?'⚠ Needs action':'✓ OK'}</td></tr>`}).join('');
+  renderDetail();
 }
 
-function toggleDrawer(idx) {
-  const ip=IPS[idx];
-  const drawer=document.getElementById('drawer');
-  if(openIdx===idx){drawer.classList.remove('open');openIdx=null;return;}
-  openIdx=idx;
-  document.getElementById('d-title').textContent=ip.title;
-  const sLabels={approved:'Approved (binding)',conditional:'Conditionally approved',reviewed:'Reviewed — awaiting approval',draft:'Draft',none:'Not started'};
-  document.getElementById('d-grid').innerHTML=`
-    <div class="d-cell"><div class="d-label">Status</div><div class="d-val">${sLabels[ip.status]||ip.status}</div></div>
-    <div class="d-cell"><div class="d-label">Module owner</div><div class="d-val">${ip.module||'—'}</div></div>
-    <div class="d-cell"><div class="d-label">BO action</div><div class="d-val" style="color:${ip.boAction?'var(--red)':'var(--green)'}">${ip.boAction?'Yes — needed':'None'}</div></div>
-    ${ip.conditions?`<div class="d-cell" style="grid-column:1/-1"><div class="d-label">Open conditions</div><div class="d-val">${ip.conditions}</div></div>`:''}`;
-  document.getElementById('d-note').textContent=ip.note||'No notes.';
-  drawer.classList.add('open');
-  drawer.scrollIntoView({behavior:'smooth',block:'nearest'});
+function renderDetail(){
+  const el=document.getElementById('detailPanel');
+  if(!openIp){el.innerHTML='';return}
+  const ip=openIp;
+  el.innerHTML=`<div class="detail"><div class="d-hd"><div class="d-title">${esc(ip.title)}</div><button class="d-x" onclick="closeDetail()">✕</button></div><div class="d-grid"><div class="d-cell"><div class="d-label">Status</div><div class="d-val">${SLABEL[ip.status]||ip.status}</div></div><div class="d-cell"><div class="d-label">Module owner</div><div class="d-val">${esc(ip.module||'—')}</div></div><div class="d-cell"><div class="d-label">BO action</div><div class="d-val" style="color:${ip.boAction?'var(--red)':'var(--grn)'}">${ip.boAction?'Yes — needed':'None'}</div></div>${ip.conditions?`<div class="d-cell" style="grid-column:1/-1"><div class="d-label">Open conditions</div><div class="d-val">${esc(ip.conditions)}</div></div>`:''}</div><div class="d-note">${esc(ip.note||'No notes.')}</div></div>`;
 }
 
-function setFilter(f,btn) {
-  currentFilter=f;openIdx=null;
-  document.getElementById('drawer').classList.remove('open');
-  document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderTable();
+function setFilter(f){currentFilter=f;openIp=null;renderAll()}
+function toggleDetail(idx){openIp=(openIp&&ips.indexOf(openIp)===idx)?null:ips[idx];renderDetail();if(openIp)document.getElementById('detailPanel').scrollIntoView({behavior:'smooth',block:'nearest'})}
+function closeDetail(){openIp=null;renderDetail()}
+
+function parseIPs(blocks){
+  const texts=blocks.filter(b=>b.type==='text').map(b=>b.text);const full=texts.join('\n');
+  try{const c=full.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();const p=JSON.parse(c);if(Array.isArray(p)&&p.length>0)return p}catch{}
+  const m=full.match(/\[[\s\S]*\]/);if(m){try{const p=JSON.parse(m[0]);if(Array.isArray(p)&&p.length>0)return p}catch{}}
+  return null;
+}
+
+async function fetchLive(){
+  loading=true;lastError=null;elapsed=0;renderAll();
+  timer=setInterval(()=>{elapsed++;renderAll()},1000);
+  try{
+    const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('TIMEOUT')),150000));
+    const fetchPromise=fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,system:SYSTEM,
+        messages:[{role:'user',content:'Run semantic_search with selectedOnly:true now and return the IP status JSON array.'}],
+        mcp_servers:[{type:'url',url:MCP_URL,name:'XQ-DocBase'}]})
+    });
+    const res=await Promise.race([fetchPromise,timeoutPromise]);
+    if(!res.ok){const b=await res.text();throw new Error(`API ${res.status}: ${b.slice(0,300)}`)}
+    const data=await res.json();const parsed=parseIPs(data.content);
+    if(parsed&&parsed.length>3){ips=parsed;isLive=true}
+    else{const dbg=data.content.map(b=>`[${b.type}] ${(b.text||b.name||'').slice(0,80)}`).join(' | ');throw new Error(`Parsed ${parsed?parsed.length:0} IPs. ${dbg.slice(0,400)}`)}
+  }catch(err){lastError=err.message==='TIMEOUT'?'Timed out after 2.5 min.':err.message}
+  finally{clearInterval(timer);loading=false;renderAll()}
 }
 
 renderAll();
+fetchLive();
 </script>
 </body>
 </html>
