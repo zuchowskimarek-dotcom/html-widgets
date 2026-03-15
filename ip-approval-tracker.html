@@ -217,7 +217,7 @@ Schema: [{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"s
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 4000,
         system: 'You are a JSON-only responder. You must NEVER call tools or use MCP. Your entire response must be a single valid JSON array starting with [ and ending with ]. No other text.',
         messages: [{ role: 'user', content: userMsg }]
       })
@@ -231,8 +231,13 @@ Schema: [{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"s
       .map(b => b.text)
       .join('');
 
-    const match = text.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error('Response did not contain a JSON array. Raw: ' + text.substring(0, 300));
+    // Find the JSON array — locate first [ and last ] to handle wrapping
+    const start = text.indexOf('[');
+    const end = text.lastIndexOf(']');
+    if (start === -1 || end === -1 || end <= start) {
+      throw new Error('Response did not contain a JSON array. Raw: ' + text.substring(0, 300));
+    }
+    const match = [text.substring(start, end + 1)];
 
     const updates = JSON.parse(match[0]);
     if (!Array.isArray(updates) || updates.length === 0) throw new Error('Empty array returned from API.');
