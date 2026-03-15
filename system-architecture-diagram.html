@@ -405,53 +405,44 @@ body::before {
       </div>
       <div class="conn animated pulse-orange">
         <div class="conn-line-bg"></div>
-        <div class="conn-label">POST /v1/messages</div>
+        <div class="conn-label">POST (empty body)</div>
       </div>
       <div class="node cloudflare" onclick="showDetail2('cloudflare')">
         <div class="node-icon">☁</div>
         <div class="node-name">Cloudflare</div>
-        <div class="node-role">Injects API key · bypasses CORS · forwards</div>
-      </div>
-      <div class="conn animated pulse-claude">
-        <div class="conn-line-bg"></div>
-        <div class="conn-label">+ MCP config</div>
-      </div>
-      <div class="node claude" onclick="showDetail2('claude-api')">
-        <div class="node-icon">◆</div>
-        <div class="node-name">Claude API</div>
-        <div class="node-role">claude-sonnet-4 · MCP client enabled</div>
-      </div>
-    </div>
-
-    <div class="v-conn" style="padding-left:calc(28px + 130px + 1rem + 130px + 1rem + 65px)">
-      <div class="v-line"></div><div class="v-arrow"></div>
-    </div>
-
-    <div class="phase-label">Fetch — Claude discovers all IPs, reads current statuses from XQ-DocBase</div>
-    <div class="flow-row">
-      <div class="step-num">3</div>
-      <div class="node claude" onclick="showDetail2('claude-api')">
-        <div class="node-icon">◆</div>
-        <div class="node-name">Claude API</div>
-        <div class="node-role">search_documents → get_document × N (dynamic)</div>
+        <div class="node-role">Orchestrator — calls XQ-DocBase + Claude API</div>
       </div>
       <div class="conn animated pulse-green">
         <div class="conn-line-bg"></div>
-        <div class="conn-label">search → get × N</div>
+        <div class="conn-label">MCP JSON-RPC + session</div>
       </div>
       <div class="node docbase" onclick="showDetail2('docbase')">
         <div class="node-icon">⬡</div>
         <div class="node-name">XQ-DocBase</div>
-        <div class="node-role">Returns live Plan Status — real checkbox states</div>
+        <div class="node-role">semantic_search (selectedOnly) → returns live data</div>
       </div>
-      <div class="conn animated pulse-green">
+    </div>
+
+    <div class="v-conn" style="padding-left:calc(28px + 65px)">
+      <div class="v-line"></div><div class="v-arrow"></div>
+    </div>
+
+    <div class="phase-label">Structure — Cloudflare sends raw data to Claude for JSON structuring</div>
+    <div class="flow-row">
+      <div class="step-num">3</div>
+      <div class="node cloudflare" onclick="showDetail2('cloudflare')">
+        <div class="node-icon">☁</div>
+        <div class="node-name">Cloudflare</div>
+        <div class="node-role">Passes raw search results to Claude API</div>
+      </div>
+      <div class="conn animated pulse-claude">
         <div class="conn-line-bg"></div>
-        <div class="conn-label">real statuses</div>
+        <div class="conn-label">plain /v1/messages (no MCP)</div>
       </div>
       <div class="node claude" onclick="showDetail2('claude-api')" style="opacity:.75">
         <div class="node-icon">◆</div>
         <div class="node-name">Claude API</div>
-        <div class="node-role">Builds JSON array from live data</div>
+        <div class="node-role">Structures raw data into JSON array</div>
       </div>
     </div>
 
@@ -528,28 +519,28 @@ const DETAILS_CREATE = {
 const DETAILS_REFRESH = {
   user: {
     color: '#38BDF8', title: 'Team member → You (Marek)',
-    body: 'The flow starts when any team member edits an IP document in Notion — ticking the Reviewed or Approved checkbox, resolving conditions, or updating the BO approval statement. XQ-DocBase picks this up on its next sync. You then decide to open the widget and click "Live refresh" to pull the updated statuses into the tracker.',
+    body: 'The flow starts when any team member edits an IP document in Notion — ticking the Reviewed or Approved checkbox, resolving conditions, or updating the BO approval statement. XQ-DocBase picks this up on its next sync. You then open the widget URL and click "Live refresh" to pull the updated statuses into the tracker.',
     tags: ['change origin', 'notion edit', 'triggers decision to refresh', 'browser is runtime']
   },
   notion: {
     color: '#ffffff', title: 'Notion — source of all IP changes',
-    body: 'Every IP document lives in Notion. When a team member ticks a checkbox or adds a BO approval note, Notion persists that change immediately. XQ-DocBase syncs from Notion periodically, making the updated state available for Claude to query via MCP. Notion is also where Claude writes the widget documentation pages after each build.',
+    body: 'Every IP document lives in Notion. When a team member ticks a checkbox or adds a BO approval note, Notion persists that change immediately. XQ-DocBase syncs from Notion periodically, making the updated state available for the Cloudflare Worker to query directly via MCP.',
     tags: ['IP documents live here', 'checkbox state origin', 'syncs to XQ-DocBase', 'widget docs via MCP']
   },
   docbase: {
-    color: '#10B981', title: 'XQ-DocBase — the sync bridge',
-    body: 'XQ-DocBase is the critical link between Notion edits and the live widget. It periodically syncs all Implementation Plan documents from Notion into its PostgreSQL store. When you trigger a live refresh, Claude first calls search_documents to discover all current IPs (picking up any newly added ones automatically), then calls get_document on each one to read its current checkbox states. This is what makes the tracker reflect reality — and scale automatically as new IPs are added.',
-    tags: ['railway hosted', 'pgvector', 'notion sync', 'MCP server', 'search_documents → get_document × N']
+    color: '#10B981', title: 'XQ-DocBase — queried directly by Cloudflare Worker',
+    body: 'XQ-DocBase is the critical data source. The Cloudflare Worker connects to it directly over HTTP using the MCP JSON-RPC protocol (with SSE session management). It calls semantic_search with selectedOnly=true on a curated set of 25 IP and BO-Approval documents. The raw chunk previews contain the Plan Status checkboxes — "[x] Draft", "[x] Reviewed", "[x] Approved (binding)" — which Claude then parses into structured JSON.',
+    tags: ['railway hosted', 'pgvector', 'notion sync', 'MCP over HTTP+SSE', 'semantic_search(selectedOnly:true)', 'direct from Worker']
   },
   cloudflare: {
-    color: '#F97316', title: 'Cloudflare Worker — CORS bridge (one-time setup)',
-    body: 'Set up once during widget creation. Browsers block direct calls to api.anthropic.com (CORS). The Worker at anthropic-proxy.zuchowski-marek.workers.dev receives the POST from the browser, injects the ANTHROPIC_API_KEY, passes the mcp_servers config through to Anthropic API server-side, and returns the response with CORS headers. After the one-time setup it runs transparently.',
-    tags: ['anthropic-proxy.zuchowski-marek.workers.dev', 'CORS bypass', 'API key injection', 'one-time setup']
+    color: '#F97316', title: 'Cloudflare Worker — the orchestrator',
+    body: 'The Worker at anthropic-proxy.zuchowski-marek.workers.dev is the central orchestrator of the live refresh. On POST, it: (1) Initializes an MCP session with XQ-DocBase via JSON-RPC over HTTP, capturing the Mcp-Session-Id header. (2) Sends the "initialized" notification. (3) Calls semantic_search(selectedOnly: true) with the session ID. (4) Passes the raw results to the Anthropic API (plain /v1/messages, no mcp_servers param) for JSON structuring. (5) Returns the structured response with CORS headers to the browser. No mcp_servers API feature needed — the Worker speaks MCP directly.',
+    tags: ['anthropic-proxy.zuchowski-marek.workers.dev', 'MCP JSON-RPC client', 'session management', 'CORS headers', 'API key injection', 'orchestrator']
   },
   'claude-api': {
-    color: '#7C6AF7', title: 'Claude API — reads live data from DocBase',
-    body: 'Receives the forwarded request with the XQ-DocBase MCP server configured. First calls search_documents on the Implementation plans database (limit 50) to discover all current IPs — automatically picking up any newly added documents. Then calls get_document on each result to read its Plan Status section (checkbox states + BO approval statements), and builds a JSON array reflecting actual current state. Count is dynamic: 14 today, 18 tomorrow, automatically correct.',
-    tags: ['claude-sonnet-4', 'MCP client', 'search_documents + get_document × N', 'dynamic count', '~€0.01 per refresh']
+    color: '#7C6AF7', title: 'Claude API — structures raw data into JSON',
+    body: 'Receives the raw semantic search results from the Worker (not via MCP — just plain text in the user message). Uses a focused system prompt to parse chunkPreview fields containing "[x] Approved (binding)" checkbox patterns, BO-Approval decisions ("GO", "Conditionally Approved"), and document titles into a clean JSON array with status, priority, module, boAction, conditions. Pure text-to-JSON structuring — no tool use, no MCP, fast and cheap.',
+    tags: ['claude-sonnet-4', 'plain /v1/messages', 'no MCP', 'text → JSON structuring', '~$0.01 per refresh']
   },
   console: {
     color: '#F59E0B', title: 'Anthropic Console — one-time setup only',
