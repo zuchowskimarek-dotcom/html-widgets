@@ -183,27 +183,30 @@ async function refreshFromDocBase() {
   btn.disabled = true;
   setStatus('loading', 'Querying Claude for updated IP statuses…');
 
-  const userMsg = `Use the XQ-DocBase get_document tool to fetch each document ID below and read its Plan Status section (checkboxes for Draft, Reviewed, Approved and any BO approval statements).
+  const userMsg = `Use the XQ-DocBase MCP tools to find and read ALL Implementation Plan documents currently in the database (ID: 309a975d-2ff8-803c-b6de-db27860aa93e).
 
-Document IDs to fetch:
-${IPS.map(ip => `- ${ip.id}  (${ip.title})`).join('\n')}
+Step 1: Call search_documents with query "Implementation Plan status approved draft reviewed" and databaseId "309a975d-2ff8-803c-b6de-db27860aa93e" and limit 50. This returns all current IPs including any newly added ones.
 
-After fetching all documents, return ONLY a JSON array. First character must be [, last must be ].
+Step 2: For each document returned, call get_document to read its Plan Status section (the checkboxes for Draft, Reviewed, Approved and any BO approval statements).
+
+Step 3: Return ONLY a JSON array — no text before or after, no markdown. First character must be [, last must be ].
 
 Schema per item:
-{"id":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","boAction":boolean,"note":"string","conditions":"string|null"}
+{"id":"string","title":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","priority":"p0|p1|p2","module":"string","boAction":boolean,"note":"string","conditions":"string|null","url":"string"}
 
 Status rules:
 - "approved": all three checkboxes ticked OR BO explicitly approved in writing
 - "conditional": BO issued conditional approval with open conditions
-- "reviewed": Reviewed checkbox ticked, Approved not ticked
-- "draft": only Draft checkbox ticked
+- "reviewed": Reviewed ticked, Approved not ticked
+- "draft": only Draft ticked
 - "none": no checkboxes ticked
+- priority: infer from content (p0 = customer-facing/critical path, p1 = important, p2 = lower)
+- module: short owner e.g. "MFC / Walczak", "HMI / Mikolaj"
 - boAction: true if BO (Marek Zuchowski) still needs to act
-- note: 1 sentence summary of current status
-- conditions: open conditions string or null
+- url: construct as https://www.notion.so/ + documentId (no dashes)
+- note: 1 sentence current status summary
 
-Return all ${IPS.length} items. JSON array only — nothing else.`;
+Return ALL documents found — if there are 18 IPs, return 18 items. JSON array only.`;
 
   try {
     const resp = await fetch('https://anthropic-proxy.zuchowski-marek.workers.dev', {
@@ -242,17 +245,30 @@ Return all ${IPS.length} items. JSON array only — nothing else.`;
     if (!Array.isArray(updates) || updates.length === 0) throw new Error('Empty array returned from API.');
 
     let changed = 0;
-    updates.forEach(upd => {
-      const idx = IPS.findIndex(ip => ip.id === upd.id);
-      if (idx === -1) return;
-      const before = IPS[idx].status;
-      IPS[idx] = { ...IPS[idx], ...upd, title: IPS[idx].title, priority: IPS[idx].priority, module: IPS[idx].module, url: IPS[idx].url };
-      if (before !== IPS[idx].status) changed++;
+    // Build a map of existing IPs by ID for comparison
+    const existingById = Object.fromEntries(IPS.map(ip => [ip.id, ip]));
+
+    // Replace entire IPS array with live data — picks up new IPs automatically
+    IPS = updates.map(upd => {
+      const existing = existingById[upd.id];
+      const before = existing?.status;
+      if (before && before !== upd.status) changed++;
+      // Fill any missing fields from seed if present
+      return {
+        priority: existing?.priority || upd.priority || 'p2',
+        module: upd.module || existing?.module || '—',
+        url: upd.url || existing?.url || '',
+        conditions: upd.conditions || null,
+        ...upd,
+      };
     });
+    // Count brand new IPs
+    const newIPs = updates.filter(upd => !existingById[upd.id]).length;
 
     const now = new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
     document.getElementById('lastUpdated').textContent = 'Live · ' + now;
-    setStatus('ok', `DocBase refresh complete · ${updates.length} IPs checked · ${changed} status change${changed!==1?'s':''} detected`);
+    const newMsg = newIPs > 0 ? ` · ${newIPs} new IP${newIPs!==1?'s':''} discovered` : '';
+    setStatus('ok', `DocBase refresh complete · ${updates.length} IPs found · ${changed} status change${changed!==1?'s':''} detected${newMsg}`);
 
   } catch(err) {
     setStatus('error', 'Refresh failed: ' + err.message);

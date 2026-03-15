@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Architecture — Widget Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #090b0f;
+  --surface: #0e1117;
+  --surface2: #141820;
+  --border: rgba(255,255,255,.07);
+  --border-hi: rgba(255,255,255,.18);
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --dim: #374151;
+
+  --claude: #7C6AF7;
+  --claude-bg: rgba(124,106,247,.12);
+  --console: #F59E0B;
+  --console-bg: rgba(245,158,11,.1);
+  --github: #E5E7EB;
+  --github-bg: rgba(229,231,235,.08);
+  --cloudflare: #F97316;
+  --cloudflare-bg: rgba(249,115,22,.1);
+  --docbase: #10B981;
+  --docbase-bg: rgba(16,185,129,.1);
+  --notion: #fff;
+  --notion-bg: rgba(255,255,255,.07);
+  --user: #38BDF8;
+  --user-bg: rgba(56,189,248,.1);
+
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem 1.5rem 3rem;
+  overflow-x: hidden;
+}
+
+/* scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
+
+/* header */
+.masthead { margin-bottom: 3rem; }
+.masthead-eyebrow { font-size: 10px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; margin-bottom: .5rem; }
+.masthead-title { font-family: var(--display); font-size: clamp(24px,4vw,42px); font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+.masthead-title span { color: var(--claude); }
+.masthead-sub { font-size: 12px; color: var(--muted); margin-top: .75rem; max-width: 560px; line-height: 1.7; }
+
+/* tab switcher */
+.tabs { display: flex; gap: 4px; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tab { font-family: var(--mono); font-size: 11px; padding: .5rem 1.25rem; border: 1px solid transparent; cursor: pointer; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; transition: all .2s; position: relative; top: 1px; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-color: var(--border-hi); border-bottom-color: var(--bg); background: var(--surface); }
+
+/* panel */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* diagram canvas */
+.diagram { position: relative; width: 100%; }
+
+/* section label */
+.phase-label {
+  font-size: 9px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;
+}
+.phase-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* flow rows */
+.flow { display: flex; flex-direction: column; gap: 0; }
+
+.flow-row {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 12px; position: relative;
+}
+
+/* actor node */
+.node {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 130px; min-height: 72px; flex-shrink: 0;
+  border: 1px solid var(--border); background: var(--surface);
+  padding: .6rem .8rem; cursor: pointer;
+  transition: border-color .2s, background .2s, transform .15s;
+  position: relative;
+}
+.node:hover { border-color: var(--border-hi); background: var(--surface2); transform: translateY(-1px); }
+.node.active-node { transform: translateY(-1px); }
+.node-icon { font-size: 18px; margin-bottom: 4px; }
+.node-name { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.node-role { font-size: 9px; color: var(--muted); margin-top: 2px; text-align: center; line-height: 1.3; }
+
+/* color variants */
+.node.claude { border-color: rgba(124,106,247,.3); }
+.node.claude .node-name { color: var(--claude); }
+.node.claude.active-node { background: var(--claude-bg); border-color: var(--claude); }
+.node.console { border-color: rgba(245,158,11,.25); }
+.node.console .node-name { color: var(--console); }
+.node.console.active-node { background: var(--console-bg); border-color: var(--console); }
+.node.github { border-color: rgba(229,231,235,.15); }
+.node.github .node-name { color: var(--github); }
+.node.github.active-node { background: var(--github-bg); border-color: var(--github); }
+.node.cloudflare { border-color: rgba(249,115,22,.25); }
+.node.cloudflare .node-name { color: var(--cloudflare); }
+.node.cloudflare.active-node { background: var(--cloudflare-bg); border-color: var(--cloudflare); }
+.node.docbase { border-color: rgba(16,185,129,.25); }
+.node.docbase .node-name { color: var(--docbase); }
+.node.docbase.active-node { background: var(--docbase-bg); border-color: var(--docbase); }
+.node.notion { border-color: rgba(255,255,255,.15); }
+.node.notion .node-name { color: var(--notion); }
+.node.notion.active-node { background: var(--notion-bg); border-color: rgba(255,255,255,.4); }
+.node.user { border-color: rgba(56,189,248,.25); }
+.node.user .node-name { color: var(--user); }
+.node.user.active-node { background: var(--user-bg); border-color: var(--user); }
+
+/* connector */
+.conn {
+  flex: 1; height: 32px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.conn-line {
+  position: absolute; width: 100%; height: 1px;
+  background: linear-gradient(90deg, var(--border-hi), var(--border-hi));
+}
+.conn-label {
+  position: relative; z-index: 1;
+  font-size: 9px; color: var(--muted);
+  background: var(--bg); padding: 0 6px;
+  letter-spacing: .05em; text-align: center;
+  line-height: 1.4; max-width: 100px;
+}
+.conn.animated .conn-line { background: transparent; }
+.conn.animated::before {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  top: 50%; transform: translateY(-50%);
+  animation: pulse-travel 2s ease-in-out infinite;
+}
+.conn.pulse-claude::before { background: var(--claude); box-shadow: 0 0 8px var(--claude); }
+.conn.pulse-orange::before { background: var(--cloudflare); box-shadow: 0 0 8px var(--cloudflare); }
+.conn.pulse-green::before { background: var(--docbase); box-shadow: 0 0 8px var(--docbase); }
+.conn.pulse-white::before { background: #fff; box-shadow: 0 0 8px #fff; }
+.conn.pulse-console::before { background: var(--console); box-shadow: 0 0 8px var(--console); }
+
+@keyframes pulse-travel {
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { left: calc(100% - 8px); opacity: 0; }
+}
+
+/* connector line background */
+.conn.animated .conn-line-bg {
+  position: absolute; width: 100%; height: 1px;
+  background: var(--border);
+}
+
+/* detail panel */
+.detail {
+  border: 1px solid var(--border); background: var(--surface2);
+  padding: 1.25rem 1.5rem; margin-top: 1.5rem;
+  min-height: 120px;
+  transition: all .2s;
+}
+.detail-header { display: flex; align-items: center; gap: 10px; margin-bottom: .75rem; }
+.detail-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.detail-title { font-family: var(--display); font-size: 16px; font-weight: 700; }
+.detail-body { font-size: 11px; color: var(--muted); line-height: 1.8; }
+.detail-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: .75rem; }
+.detail-tag { font-size: 9px; padding: 2px 8px; border: 1px solid var(--border); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+
+/* legend */
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* step annotations */
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--muted);
+  flex-shrink: 0; margin-right: 6px;
+}
+
+/* vertical connector */
+.v-conn {
+  display: flex; flex-direction: column; align-items: center;
+  margin: -4px 0; position: relative; z-index: 2;
+  padding-left: 65px;
+}
+.v-line { width: 1px; height: 20px; background: var(--border); }
+.v-arrow { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--dim); }
+
+/* wide connector for multi-node spans */
+.wide-conn { display: flex; align-items: center; margin-bottom: 12px; }
+.wide-conn .conn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="masthead">
+  <div class="masthead-eyebrow">System Architecture · Widget Pipeline · March 2026</div>
+  <div class="masthead-title">How <span>Claude</span> builds and<br>keeps your widgets alive</div>
+  <div class="masthead-sub">Interactive map of all actors, services, and data flows — from widget creation to live refresh in Notion. Click any node to learn its role.</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('create')">① Creating the widget</div>
+  <div class="tab" onclick="switchTab('refresh')">② Keeping data live</div>
+</div>
+
+<!-- PANEL 1: CREATION FLOW -->
+<div class="panel active" id="panel-create">
+  <div class="diagram">
+
+    <div class="phase-label">Step 1 — Design &amp; generation</div>
+    <div class="flow-row">
+      <div class="step-num">1</div>
+      <div class="node user" onclick="showDetail('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">You (Marek)</div>
+        <div class="node-role">Request a widget in claude.ai chat</div>
+      </div>
+      <div class="conn animated pulse-claude">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">describe idea</div>
+      </div>
+      <div class="node claude" onclick="showDetail('claude')">
+        <div class="node-icon">◆</div>
+        <div class="node-name">Claude</div>
+        <div class="node-role">Queries DocBase → generates HTML/JS from real data</div>
+      </div>
+      <div class="conn animated pulse-green">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">semantic_search + get_document</div>
+      </div>
+      <div class="node docbase" onclick="showDetail('docbase')">
+        <div class="node-icon">⬡</div>
+        <div class="node-name">XQ-DocBase</div>
+        <div class="node-role">Live project data — IPs, arch docs, commissioning</div>
+      </div>
+    </div>
+
+    <div class="v-conn"><div class="v-line"></div><div class="v-arrow"></div></div>
+
+    <div class="phase-label">Step 2 — Export &amp; hosting</div>
+    <div class="flow-row">
+      <div class="step-num">2</div>
+      <div class="node claude" onclick="showDetail('claude')">
+        <div class="node-icon">◆</div>
+        <div class="node-name">Claude</div>
+        <div class="node-role">Produces .html file · creates Notion doc page</div>
+      </div>
+      <div class="conn animated pulse-white">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">download file</div>
+      </div>
+      <div class="node user" onclick="showDetail('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">You (Marek)</div>
+        <div class="node-role">Upload to GitHub repo</div>
+      </div>
+      <div class="conn animated pulse-white">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">push to repo</div>
+      </div>
+      <div class="node github" onclick="showDetail('github')">
+        <div class="node-icon">⬡</div>
+        <div class="node-name">GitHub Pages</div>
+        <div class="node-role">Serves .html at public URL</div>
+      </div>
+    </div>
+
+    <div class="v-conn"><div class="v-line"></div><div class="v-arrow"></div></div>
+
+    <div class="phase-label">Step 3 — One-time infrastructure setup (done once per widget type)</div>
+    <div class="flow-row">
+      <div class="step-num">3</div>
+      <div class="node user" onclick="showDetail('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">You (Marek)</div>
+        <div class="node-role">console.anthropic.com → API key + credits</div>
+      </div>
+      <div class="conn animated pulse-console">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">sk-ant-api03-...</div>
+      </div>
+      <div class="node console" onclick="showDetail('console')">
+        <div class="node-icon">⊞</div>
+        <div class="node-name">Anthropic Console</div>
+        <div class="node-role">API key · $5 credits · billing</div>
+      </div>
+      <div class="conn animated pulse-orange">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">store as secret</div>
+      </div>
+      <div class="node cloudflare" onclick="showDetail('cloudflare')">
+        <div class="node-icon">☁</div>
+        <div class="node-name">Cloudflare Worker</div>
+        <div class="node-role">CORS proxy deployed · key encrypted</div>
+      </div>
+    </div>
+
+    <div class="v-conn"><div class="v-line"></div><div class="v-arrow"></div></div>
+
+    <div class="phase-label">Step 4 — Widget accessible, URL stored in Notion</div>
+    <div class="flow-row">
+      <div class="step-num">4</div>
+      <div class="node claude" onclick="showDetail('claude')">
+        <div class="node-icon">◆</div>
+        <div class="node-name">Claude</div>
+        <div class="node-role">Writes doc page to Widgets database via MCP</div>
+      </div>
+      <div class="conn animated pulse-claude">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">Notion MCP write</div>
+      </div>
+      <div class="node notion" onclick="showDetail('notion')">
+        <div class="node-icon">N</div>
+        <div class="node-name">Notion</div>
+        <div class="node-role">Widgets DB — title + URL + documentation</div>
+      </div>
+      <div class="conn animated pulse-white">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">click URL → browser</div>
+      </div>
+      <div class="node user" onclick="showDetail('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">You (Marek)</div>
+        <div class="node-role">Opens widget in any browser</div>
+      </div>
+    </div>
+
+    <div id="detail-create" class="detail">
+      <div style="font-size:11px;color:var(--muted)">Click any node above to see its role in the pipeline.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 2: LIVE REFRESH FLOW -->
+<div class="panel" id="panel-refresh">
+  <div class="diagram">
+
+    <div class="phase-label">Origin — a change happens in Notion</div>
+    <div class="flow-row">
+      <div class="step-num">1</div>
+      <div class="node user" onclick="showDetail2('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">Team member</div>
+        <div class="node-role">Edits an IP doc — ticks Reviewed or Approved checkbox</div>
+      </div>
+      <div class="conn animated pulse-white">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">document saved</div>
+      </div>
+      <div class="node notion" onclick="showDetail2('notion')">
+        <div class="node-icon">N</div>
+        <div class="node-name">Notion</div>
+        <div class="node-role">IP document updated · new checkbox state persisted</div>
+      </div>
+      <div class="conn animated pulse-green">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">periodic sync</div>
+      </div>
+      <div class="node docbase" onclick="showDetail2('docbase')">
+        <div class="node-icon">⬡</div>
+        <div class="node-name">XQ-DocBase</div>
+        <div class="node-role">Syncs updated document from Notion</div>
+      </div>
+    </div>
+
+    <div class="v-conn" style="padding-left:calc(28px + 130px + 1rem + 130px + 1rem + 65px)">
+      <div class="v-line"></div><div class="v-arrow"></div>
+    </div>
+
+    <div class="phase-label">Decision — you open the widget and trigger a refresh</div>
+    <div class="flow-row">
+      <div class="step-num">2</div>
+      <div class="node user" onclick="showDetail2('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">You (Marek)</div>
+        <div class="node-role">Open widget URL · click "Live refresh"</div>
+      </div>
+      <div class="conn animated pulse-orange">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">POST /v1/messages</div>
+      </div>
+      <div class="node cloudflare" onclick="showDetail2('cloudflare')">
+        <div class="node-icon">☁</div>
+        <div class="node-name">Cloudflare</div>
+        <div class="node-role">Injects API key · bypasses CORS · forwards</div>
+      </div>
+      <div class="conn animated pulse-claude">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">+ MCP config</div>
+      </div>
+      <div class="node claude" onclick="showDetail2('claude-api')">
+        <div class="node-icon">◆</div>
+        <div class="node-name">Claude API</div>
+        <div class="node-role">claude-sonnet-4 · MCP client enabled</div>
+      </div>
+    </div>
+
+    <div class="v-conn" style="padding-left:calc(28px + 130px + 1rem + 130px + 1rem + 65px)">
+      <div class="v-line"></div><div class="v-arrow"></div>
+    </div>
+
+    <div class="phase-label">Fetch — Claude discovers all IPs, reads current statuses from XQ-DocBase</div>
+    <div class="flow-row">
+      <div class="step-num">3</div>
+      <div class="node claude" onclick="showDetail2('claude-api')">
+        <div class="node-icon">◆</div>
+        <div class="node-name">Claude API</div>
+        <div class="node-role">search_documents → get_document × N (dynamic)</div>
+      </div>
+      <div class="conn animated pulse-green">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">search → get × N</div>
+      </div>
+      <div class="node docbase" onclick="showDetail2('docbase')">
+        <div class="node-icon">⬡</div>
+        <div class="node-name">XQ-DocBase</div>
+        <div class="node-role">Returns live Plan Status — real checkbox states</div>
+      </div>
+      <div class="conn animated pulse-green">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">real statuses</div>
+      </div>
+      <div class="node claude" onclick="showDetail2('claude-api')" style="opacity:.75">
+        <div class="node-icon">◆</div>
+        <div class="node-name">Claude API</div>
+        <div class="node-role">Builds JSON array from live data</div>
+      </div>
+    </div>
+
+    <div class="v-conn" style="padding-left:calc(28px + 65px)">
+      <div class="v-line"></div><div class="v-arrow"></div>
+    </div>
+
+    <div class="phase-label">Result — widget re-renders with live data</div>
+    <div class="flow-row">
+      <div class="step-num">4</div>
+      <div class="node cloudflare" onclick="showDetail2('cloudflare')">
+        <div class="node-icon">☁</div>
+        <div class="node-name">Cloudflare</div>
+        <div class="node-role">Adds CORS headers · returns to browser</div>
+      </div>
+      <div class="conn animated pulse-white">
+        <div class="conn-line-bg"></div>
+        <div class="conn-label">JSON · real statuses</div>
+      </div>
+      <div class="node user" onclick="showDetail2('user')">
+        <div class="node-icon">👤</div>
+        <div class="node-name">Browser</div>
+        <div class="node-role">IP tracker re-renders with current approval states</div>
+      </div>
+    </div>
+
+    <div id="detail-refresh" class="detail">
+      <div style="font-size:11px;color:var(--muted)">Click any node above to see its role in the live refresh pipeline.</div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--claude)"></div>Claude / Anthropic</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--console)"></div>Anthropic Console</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--github)"></div>GitHub</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cloudflare)"></div>Cloudflare Workers</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--docbase)"></div>XQ-DocBase</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--notion)"></div>Notion</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--user)"></div>You (Marek)</div>
+</div>
+
+</div>
+
+<script>
+const DETAILS_CREATE = {
+  user: {
+    color: '#38BDF8', title: 'You — Marek',
+    body: 'The initiator and orchestrator of the entire system. You describe what you want in the claude.ai chat, download the generated HTML files, upload them to GitHub, and paste URLs into Notion embed blocks. The only manual steps in the whole pipeline.',
+    tags: ['initiator', 'github uploader', 'notion editor']
+  },
+  claude: {
+    color: '#7C6AF7', title: 'Claude (claude.ai)',
+    body: 'Reads your DocBase documents via the XQ-DocBase MCP server to ground widget content in real data. Generates self-contained HTML/JS files with all styles and logic inline. Also creates Notion documentation pages automatically via the Notion MCP. The creative and technical engine of the pipeline.',
+    tags: ['code generation', 'MCP tool use', 'notion integration', 'docbase queries']
+  },
+  docbase: {
+    color: '#10B981', title: 'XQ-DocBase',
+    body: 'A Railway-hosted MCP server backed by PostgreSQL with pgvector embeddings (Gemini). It syncs all your Notion workspace documents and exposes semantic search, full-text search, and document retrieval. Claude uses it to pull real content — IP statuses, architecture docs, commissioning data — into widgets.',
+    tags: ['railway hosted', 'pgvector', 'notion sync', 'MCP server']
+  },
+  github: {
+    color: '#E5E7EB', title: 'GitHub Pages',
+    body: 'Your html-widgets repo at github.com/zuchowskimarek-dotcom/html-widgets. You upload .html files via the web UI. GitHub Pages automatically serves them at https://zuchowskimarek-dotcom.github.io/html-widgets/<filename>. No build step, no configuration — instant public hosting for static files.',
+    tags: ['zuchowskimarek-dotcom', 'html-widgets', 'static hosting', 'free tier']
+  },
+  notion: {
+    color: '#ffffff', title: 'Notion — knowledge base only',
+    body: 'Notion\'s role in this system is purely as a knowledge base. Claude automatically creates and updates a documentation page in your Widgets database after every widget build — containing the title, GitHub Pages URL, description, and controls. You click that URL and the widget opens directly in any browser as a standalone page. No iframe, no embed block, no hosting. Notion is also the source of truth for DocBase — all your project documents live here and get synced to XQ-DocBase for Claude to query.',
+    tags: ['widgets database', 'URL storage', 'doc creation via MCP', 'docbase sync source', 'no iframe needed']
+  }
+};
+
+const DETAILS_REFRESH = {
+  user: {
+    color: '#38BDF8', title: 'Team member → You (Marek)',
+    body: 'The flow starts when any team member edits an IP document in Notion — ticking the Reviewed or Approved checkbox, resolving conditions, or updating the BO approval statement. XQ-DocBase picks this up on its next sync. You then decide to open the widget and click "Live refresh" to pull the updated statuses into the tracker.',
+    tags: ['change origin', 'notion edit', 'triggers decision to refresh', 'browser is runtime']
+  },
+  notion: {
+    color: '#ffffff', title: 'Notion — source of all IP changes',
+    body: 'Every IP document lives in Notion. When a team member ticks a checkbox or adds a BO approval note, Notion persists that change immediately. XQ-DocBase syncs from Notion periodically, making the updated state available for Claude to query via MCP. Notion is also where Claude writes the widget documentation pages after each build.',
+    tags: ['IP documents live here', 'checkbox state origin', 'syncs to XQ-DocBase', 'widget docs via MCP']
+  },
+  docbase: {
+    color: '#10B981', title: 'XQ-DocBase — the sync bridge',
+    body: 'XQ-DocBase is the critical link between Notion edits and the live widget. It periodically syncs all Implementation Plan documents from Notion into its PostgreSQL store. When you trigger a live refresh, Claude first calls search_documents to discover all current IPs (picking up any newly added ones automatically), then calls get_document on each one to read its current checkbox states. This is what makes the tracker reflect reality — and scale automatically as new IPs are added.',
+    tags: ['railway hosted', 'pgvector', 'notion sync', 'MCP server', 'search_documents → get_document × N']
+  },
+  cloudflare: {
+    color: '#F97316', title: 'Cloudflare Worker — CORS bridge (one-time setup)',
+    body: 'Set up once during widget creation. Browsers block direct calls to api.anthropic.com (CORS). The Worker at anthropic-proxy.zuchowski-marek.workers.dev receives the POST from the browser, injects the ANTHROPIC_API_KEY, passes the mcp_servers config through to Anthropic API server-side, and returns the response with CORS headers. After the one-time setup it runs transparently.',
+    tags: ['anthropic-proxy.zuchowski-marek.workers.dev', 'CORS bypass', 'API key injection', 'one-time setup']
+  },
+  'claude-api': {
+    color: '#7C6AF7', title: 'Claude API — reads live data from DocBase',
+    body: 'Receives the forwarded request with the XQ-DocBase MCP server configured. First calls search_documents on the Implementation plans database (limit 50) to discover all current IPs — automatically picking up any newly added documents. Then calls get_document on each result to read its Plan Status section (checkbox states + BO approval statements), and builds a JSON array reflecting actual current state. Count is dynamic: 14 today, 18 tomorrow, automatically correct.',
+    tags: ['claude-sonnet-4', 'MCP client', 'search_documents + get_document × N', 'dynamic count', '~€0.01 per refresh']
+  },
+  console: {
+    color: '#F59E0B', title: 'Anthropic Console — one-time setup only',
+    body: 'Set up once: account created at console.anthropic.com (zuchowski.marek@gmail.com), $5 credits added, API key generated (sk-ant-api03-...). The key is stored as an encrypted secret in the Cloudflare Worker and never touched again. This step belongs to widget creation setup — it has no role in the ongoing refresh cycle.',
+    tags: ['zuchowski.marek@gmail.com', '$5 credits', 'one-time setup', 'key stored in Cloudflare']
+  }
+};
+
+let activePanel = 'create';
+
+function switchTab(panel) {
+  activePanel = panel;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&panel==='create')||(i===1&&panel==='refresh')));
+  document.getElementById('panel-create').classList.toggle('active', panel==='create');
+  document.getElementById('panel-refresh').classList.toggle('active', panel==='refresh');
+}
+
+function showDetail(key) {
+  const d = DETAILS_CREATE[key];
+  if (!d) return;
+  const el = document.getElementById('detail-create');
+  el.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-dot" style="background:${d.color}"></div>
+      <div class="detail-title" style="color:${d.color}">${d.title}</div>
+    </div>
+    <div class="detail-body">${d.body}</div>
+    <div class="detail-tags">${d.tags.map(t=>`<span class="detail-tag">${t}</span>`).join('')}</div>`;
+  document.querySelectorAll('#panel-create .node').forEach(n => n.classList.remove('active-node'));
+  event.currentTarget.classList.add('active-node');
+}
+
+function showDetail2(key) {
+  const d = DETAILS_REFRESH[key];
+  if (!d) return;
+  const el = document.getElementById('detail-refresh');
+  el.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-dot" style="background:${d.color}"></div>
+      <div class="detail-title" style="color:${d.color}">${d.title}</div>
+    </div>
+    <div class="detail-body">${d.body}</div>
+    <div class="detail-tags">${d.tags.map(t=>`<span class="detail-tag">${t}</span>`).join('')}</div>`;
+  document.querySelectorAll('#panel-refresh .node').forEach(n => n.classList.remove('active-node'));
+  event.currentTarget.classList.add('active-node');
+}
+</script>
+</body>
+</html>
