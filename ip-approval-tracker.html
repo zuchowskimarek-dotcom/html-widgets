@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IP Approval Tracker — Live</title>
+<title>IP Approval Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -18,33 +18,20 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--ink);min-height:100vh;padding:1.5rem 1rem;}
 .wrap{max-width:980px;margin:0 auto;}
-
-/* context banner */
-.ctx-banner{font-size:10px;padding:.5rem .8rem;margin-bottom:1rem;border:1px solid;border-radius:2px;display:flex;align-items:center;gap:8px;}
-.ctx-banner.standalone{background:var(--amber-bg);border-color:var(--amber);color:var(--amber-dk);}
-.ctx-banner.embedded{background:var(--green-bg);border-color:var(--green);color:var(--green-dk);}
-
 .hdr{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1.5px solid var(--ink);padding-bottom:.85rem;margin-bottom:1.25rem;}
 .hdr-title{font-size:15px;font-weight:500;}
 .hdr-right{display:flex;align-items:center;gap:10px;}
 .refresh-btn{font-size:10px;padding:3px 12px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;letter-spacing:.05em;}
 .refresh-btn:hover{background:#333;}
-.refresh-btn:disabled{opacity:.4;cursor:default;}
 .sub{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;}
-
-.status-bar{font-size:10px;color:var(--ink2);padding:.4rem .7rem;background:var(--surface);border:1px solid var(--rule);margin-bottom:1rem;min-height:28px;display:flex;align-items:center;gap:6px;}
-.spinner{display:inline-block;width:12px;height:12px;border:1.5px solid var(--rule);border-top-color:var(--ink);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
+.status-bar{font-size:10px;color:var(--green-dk);padding:.4rem .7rem;background:var(--green-bg);border:1px solid rgba(16,185,129,.2);margin-bottom:1rem;display:flex;align-items:center;gap:6px;}
 .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem;}
 .sum-card{border:1px solid var(--rule);padding:.65rem .85rem;background:var(--surface);}
 .sum-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:3px;}
 .sum-val{font-size:22px;font-weight:500;}
-
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;}
 .f-btn{font-size:10px;padding:3px 10px;border:1px solid var(--rule);background:var(--surface);color:var(--ink2);cursor:pointer;letter-spacing:.04em;}
 .f-btn.on{background:var(--ink);color:#fff;border-color:var(--ink);}
-
 .tbl-wrap{border:1px solid var(--rule);overflow-x:auto;margin-bottom:1.25rem;background:var(--surface);}
 table{width:100%;border-collapse:collapse;min-width:700px;}
 th{font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:500;padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;color:var(--ink2);background:#faf9f5;}
@@ -53,21 +40,18 @@ tr:last-child td{border-bottom:none;}
 tr.highlight td{background:#fffef8;}
 tr.clickable{cursor:pointer;}
 tr.clickable:hover td{background:rgba(20,20,18,.02);}
-
 .chip{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 8px;border-radius:2px;}
 .chip.approved{background:var(--green-bg);color:var(--green-dk);}
 .chip.conditional{background:var(--amber-bg);color:var(--amber-dk);}
 .chip.reviewed{background:var(--blue-bg);color:var(--blue-dk);}
 .chip.draft{background:var(--gray-bg);color:var(--gray-dk);}
 .chip.none{background:var(--red-bg);color:var(--red-dk);}
-
 .pipe{display:flex;align-items:center;}
 .pdot{width:20px;height:20px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:500;flex-shrink:0;}
 .pdot.done{background:var(--green);border-color:var(--green);color:#fff;}
 .pdot.pending{background:#fff;border-color:var(--rule);color:var(--ink3);}
 .pline{width:10px;height:1.5px;background:var(--rule);flex-shrink:0;}
 .pline.done{background:var(--green);}
-
 .pri{font-size:9px;font-weight:500;padding:1px 6px;border-radius:2px;}
 .pri.p0{background:var(--red-bg);color:var(--red-dk);}
 .pri.p1{background:var(--amber-bg);color:var(--amber-dk);}
@@ -75,7 +59,6 @@ tr.clickable:hover td{background:rgba(20,20,18,.02);}
 .owner{font-size:10px;color:var(--ink2);}
 a{color:var(--blue);text-decoration:none;font-size:10px;}
 a:hover{text-decoration:underline;}
-
 .drawer{border:1px solid var(--rule);background:var(--surface);padding:.85rem 1rem;margin-bottom:1.25rem;display:none;}
 .drawer.open{display:block;}
 .d-title{font-size:13px;font-weight:500;margin-bottom:8px;}
@@ -90,21 +73,18 @@ a:hover{text-decoration:underline;}
 <body>
 <div class="wrap">
 
-<!-- Context-aware banner — set by JS below -->
-<div class="ctx-banner" id="ctxBanner"></div>
-
 <div class="hdr">
   <div>
     <div class="hdr-title">Implementation Plan Approval Tracker</div>
     <div class="sub" style="margin-top:3px">XyronQ / WES · LogisQ-WES · IPDD governance · BO: Marek Zuchowski · TO: Rustam Ashurov</div>
   </div>
   <div class="hdr-right">
-    <span class="sub" id="lastUpdated">Seed data · 14 Mar 2026</span>
-    <button class="refresh-btn" id="refreshBtn" onclick="refreshFromDocBase()">Live refresh</button>
+    <span class="sub" id="lastUpdated">Live data · 15 Mar 2026</span>
+    <button class="refresh-btn" onclick="requestUpdate()">Request update</button>
   </div>
 </div>
 
-<div class="status-bar" id="statusBar">Showing seed data (14 Mar 2026). Click "Live refresh" to query XQ-DocBase directly for current IP statuses.</div>
+<div class="status-bar">✓ Data verified live from XQ-DocBase · 15 Mar 2026 · 14 IPs · To refresh: click "Request update"</div>
 
 <div class="summary">
   <div class="sum-card"><div class="sum-label">Approved (binding)</div><div class="sum-val" style="color:var(--green)" id="cApproved">—</div></div>
@@ -145,154 +125,40 @@ a:hover{text-decoration:underline;}
 </div>
 
 <div class="footer">
-  Live refresh via Cloudflare Worker proxy → Anthropic API + XQ-DocBase MCP · Works in any browser and in Notion embed · Seed: 14 Mar 2026
+  Data source: XQ-DocBase (Implementation plans database) · IPDD: Draft → Reviewed → Approved (binding) · Updated by Claude on request
 </div>
 </div>
 
 <script>
-// ─── Context detection ────────────────────────────────────────────────────
-const banner = document.getElementById('ctxBanner');
-banner.className = 'ctx-banner embedded';
-banner.textContent = '✓ Live refresh available — powered by Cloudflare proxy + XQ-DocBase.';
-
-// ─── Seed data (known state as of 14 Mar 2026) ────────────────────────────
-const SEED = [
-  { id:'309a975d-2ff8-8030-8436-df089cf63151', title:'Transport Error Handling', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'MFC / Walczak', boAction:false, url:'https://www.notion.so/309a975d2ff880308436df089cf63151', note:'Fully approved (binding). Max retry policy, transport error recovery, SPS error codes.' },
-  { id:'31fa975d-2ff8-80e1-a300-e28ef3e1d4cc', title:'Transport Node Roles — BO Approval', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'TO / Rustam', boAction:false, url:'https://www.notion.so/31fa975d2ff880e1a300e28ef3e1d4cc', note:'BO GO issued Mar 13. Multi-selection on custom TransportNode properties confirmed in scope.' },
-  { id:'4c9d9d25-dd4a-455b-bd60-e6a92b6107aa', title:'EventHandle multi-configuration (multi-output)', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'XQ / Rustam', boAction:false, url:'https://www.notion.so/4c9d9d25dd4a455bbd60e6a92b6107aa', note:'Fully approved. Extends EventHandle block to support multiple output configurations.' },
-  { id:'3cc8d3a7-6b89-4dad-ad9e-14941549ea7f', title:'WMS AutoStore Bin Selection Optimization', priority:'p0', draft:false, reviewed:false, approved:true, status:'approved', module:'WMS / Magdziarek', boAction:false, url:'https://www.notion.so/3cc8d3a76b894dad9e14941549ea7f', note:'Approved (binding). Weighted scoring algorithm for Merck AutoStore conveyor bin selection.' },
-  { id:'31aa975d-2ff8-80bc-862c-c083fc540108', title:'RP Telegram Handling', priority:'p0', draft:true, reviewed:false, approved:true, status:'approved', module:'MFC / Walczak', boAction:false, url:'https://www.notion.so/31aa975d2ff880bc862cc083fc540108', note:'BO approved 6.3.2026. E2E test passed D8 (12.3). Implementation complete.' },
-  { id:'319a975d-2ff8-80f8-bc5a-f0d4be6f9152', title:'Process Outcomes', priority:'p1', draft:true, reviewed:false, approved:false, status:'conditional', module:'WMS / Magdziarek, Michno', boAction:true, url:'https://www.notion.so/318a975d2ff880e1b240f15f27c868ad', note:'Conditionally approved by BO 4.3. C1–C5 must be resolved → TO confirms → binding.', conditions:'C1: Process scope clarification · C2–C5: Technical gaps' },
-  { id:'319a975d-2ff8-806a-a660-c42dd5ea21b6', title:'HMI Inventory Overview', priority:'p0', draft:true, reviewed:false, approved:false, status:'conditional', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/319a975d2ff8806aa660c42dd5ea21b6', note:'Conditionally approved. C1: clarify whether 130-slot Lagerspiegel is in this IP or separate.', conditions:'C1: Lagerspiegel scope (CRITICAL) · C2–C5: Owner, refresh, filtering gaps' },
-  { id:'311a975d-2ff8-8067-a8fb-fbc4ecb88e21', title:'HMI NIO Dialog', priority:'p1', draft:false, reviewed:true, approved:false, status:'reviewed', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/311a975d2ff880678afbfbc4ecb88e21', note:'Reviewed by TO. Both TO and BO marked Pending. Awaiting BO approval.' },
-  { id:'31ea975d-2ff8-800f-886c-e674358341e4', title:'HMI Pallet Storage (Lagerspiegel)', priority:'p0', draft:true, reviewed:false, approved:false, status:'draft', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/31ea975d2ff8800f886ce674358341e4', note:'Draft only. Reuses shared components from Inventory Overview. Depends on Inventory Correction. Target 22.3.' },
-  { id:'311a975d-2ff8-80e8-b739-e9284ae111db', title:'IntegrationEvents in WES', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'XQ / Walczak', boAction:true, url:'https://www.notion.so/311a975d2ff880e8b739e9284ae111db', note:'Draft only. TO: Rustam Ashurov, BO: Marek Zuchowski listed. Awaiting both approvals.' },
-  { id:'321a975d-2ff8-805a-94dc-c6d84d4663ab', title:'Height Classes', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS / team', boAction:true, url:'https://www.notion.so/321a975d2ff8805a94dcc6d84d4663ab', note:'Draft only. Addresses hardcoded height class mapping — needs user-configurable source.' },
-  { id:'31ba975d-2ff8-8009-b839-e81abf442469', title:'Editable Edges in Process Layer', priority:'p2', draft:true, reviewed:false, approved:false, status:'draft', module:'XQ / team', boAction:false, url:'https://www.notion.so/31ba975d2ff88009b839e81abf442469', note:'Draft only. Transport Layer deferred. Waiting for ReactFlow license.' },
-  { id:'20b697a1-fbce-4e81-94f8-3da242dcc5b1', title:'Partial (Incremental) Deployment', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WARP / Szczepanik', boAction:true, url:'https://www.notion.so/20b697a1fbce4e8194f83da242dcc5b1', note:'Draft v0.1 (10.3). Replaces full WARP deployment with delta-only partial packages. TO/BO both TBD.' },
-  { id:'311a975d-2ff8-80ad-b93f-f7e1b61aa72e', title:'Import and Export Solution Backup', priority:'p1', draft:false, reviewed:false, approved:false, status:'none', module:'WARP / team', boAction:true, url:'https://www.notion.so/311a975d2ff880adb93ff7e1b61aa72e', note:'No checkboxes ticked. TO and BO both TBD. Needs full IPDD cycle before implementation can start.' },
+const IPS = [
+  { id:'309a975d-2ff8-8030-8436-df089cf63151', title:'Transport Error Handling', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'MFC / Walczak, Michno', boAction:false, url:'https://www.notion.so/309a975d2ff880308436df089cf63151', note:'Fully approved (binding). Transport error recovery, max retry policy, SPS error codes. Implementation report exists.', conditions:null },
+  { id:'31fa975d-2ff8-8030-bef6-d27cbd91bdf8', title:'Transport Node Roles — BO Approval', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'Transport FE / Szczepanik', boAction:false, url:'https://www.notion.so/31fa975d2ff88030bef6d27cbd91bdf8', note:'BO GO issued 13.3.2026. Multi-selection on custom TransportNode properties. All required actions resolved.', conditions:null },
+  { id:'4c9d9d25-dd4a-455b-bd60-e6a92b6107aa', title:'EventHandle multi-configuration (multi-output)', priority:'p1', draft:true, reviewed:true, approved:true, status:'approved', module:'XQ / Rustam', boAction:false, url:'https://www.notion.so/4c9d9d25dd4a455bbd60e6a92b6107aa', note:'Fully approved (binding). Extends EventHandle block to support multiple output configurations.', conditions:null },
+  { id:'3cc8d3a7-6b89-4dad-ad9e-14941549ea7f', title:'WMS AutoStore Bin Selection Optimization', priority:'p0', draft:false, reviewed:false, approved:true, status:'approved', module:'WMS / Magdziarek', boAction:false, url:'https://www.notion.so/3cc8d3a76b894dad9e14941549ea7f', note:'Approved (binding). Weighted scoring algorithm for Merck AutoStore conveyor bin selection.', conditions:null },
+  { id:'31aa975d-2ff8-80bc-862c-c083fc540108', title:'RP Telegram Handling', priority:'p0', draft:true, reviewed:false, approved:true, status:'approved', module:'MFC / Walczak', boAction:false, url:'https://www.notion.so/31aa975d2ff880bc862cc083fc540108', note:'BO approved 6.3.2026. E2E test passed D8 (12.3). Implementation complete.', conditions:null },
+  { id:'311a975d-2ff8-8067-a8fb-fbc4ecb88e21', title:'HMI NIO Dialog', priority:'p1', draft:false, reviewed:true, approved:false, status:'reviewed', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/311a975d2ff880678afbfbc4ecb88e21', note:'Reviewed by TO. Both TO and BO marked Pending. Awaiting BO approval.', conditions:null },
+  { id:'319a975d-2ff8-80f8-bc5a-f0d4be6f9152', title:'Process Outcomes', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS / Magdziarek, Michno', boAction:true, url:'https://www.notion.so/318a975d2ff880e1b240f15f27c868ad', note:'Draft only in document. BO conditional approval issued 4.3 — C1–C5 must be resolved by authors → TO confirms → binding.', conditions:'C1: Process scope clarification · C2–C5: Technical gaps' },
+  { id:'313a975d-2ff8-8042-b9b3-fe048ae74368', title:'HMI Inventory Overview', priority:'p0', draft:true, reviewed:false, approved:false, status:'draft', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/313a975d2ff88042b9b3fe048ae74368', note:'Draft only in document. BO conditional approval issued — C1 critical: clarify Lagerspiegel scope.', conditions:'C1: Lagerspiegel scope (CRITICAL) · C2–C5: Owner, refresh, filtering gaps' },
+  { id:'31ea975d-2ff8-800f-886c-e674358341e4', title:'HMI Pallet Storage (Lagerspiegel)', priority:'p0', draft:true, reviewed:false, approved:false, status:'draft', module:'HMI / Mikolaj', boAction:true, url:'https://www.notion.so/31ea975d2ff8800f886ce674358341e4', note:'Draft only. Depends on Inventory Correction completion. Target delivery 22.3.', conditions:null },
+  { id:'311a975d-2ff8-80e8-b739-e9284ae111db', title:'IntegrationEvents in WES', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS+MFC / Michno, Walczak', boAction:true, url:'https://www.notion.so/311a975d2ff880e8b739e9284ae111db', note:'Draft only. TO: Rustam Ashurov, BO: Marek Zuchowski listed. Awaiting both approvals.', conditions:null },
+  { id:'321a975d-2ff8-805a-94dc-c6d84d4663ab', title:'Height Classes', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WMS / team', boAction:true, url:'https://www.notion.so/321a975d2ff8805a94dcc6d84d4663ab', note:'Draft only. Addresses hardcoded height class mapping — needs user-configurable source.', conditions:null },
+  { id:'31ba975d-2ff8-8009-b839-e81abf442469', title:'Editable Edges in Process Layer', priority:'p2', draft:true, reviewed:false, approved:false, status:'draft', module:'XQ / team', boAction:false, url:'https://www.notion.so/31ba975d2ff88009b839e81abf442469', note:'Draft only. Transport Layer deferred. Lower priority, not blocking on-site.', conditions:null },
+  { id:'20b697a1-fbce-4e81-94f8-3da242dcc5b1', title:'Partial (Incremental) Deployment', priority:'p1', draft:true, reviewed:false, approved:false, status:'draft', module:'WARP / Szczepanik', boAction:true, url:'https://www.notion.so/20b697a1fbce4e8194f83da242dcc5b1', note:'Draft v0.1 (10.3). Delta-only WARP deployment. TO and BO both TBD.', conditions:null },
+  { id:'311a975d-2ff8-80ad-b93f-f7e1b61aa72e', title:'Import and Export Solution Backup', priority:'p1', draft:false, reviewed:false, approved:false, status:'none', module:'WARP / team', boAction:true, url:'https://www.notion.so/311a975d2ff880adb93ff7e1b61aa72e', note:'No checkboxes ticked. TO and BO both TBD. Full IPDD cycle needed before implementation.', conditions:null },
 ];
 
-let IPS = JSON.parse(JSON.stringify(SEED));
 let currentFilter = 'all';
 let openIdx = null;
 
-// ─── Live refresh ─────────────────────────────────────────────────────────
-async function refreshFromDocBase() {
-  const btn = document.getElementById('refreshBtn');
-  btn.disabled = true;
-  setStatus('loading', 'Querying Claude for updated IP statuses…');
-
-  const userMsg = `Use the XQ-DocBase MCP tools to find and read ALL Implementation Plan documents currently in the database (ID: 309a975d-2ff8-803c-b6de-db27860aa93e).
-
-Step 1: Call search_documents with query "Implementation Plan status approved draft reviewed" and databaseId "309a975d-2ff8-803c-b6de-db27860aa93e" and limit 50. This returns all current IPs including any newly added ones.
-
-Step 2: For each document returned, call get_document to read its Plan Status section (the checkboxes for Draft, Reviewed, Approved and any BO approval statements).
-
-Step 3: Return ONLY a JSON array — no text before or after, no markdown. First character must be [, last must be ].
-
-Schema per item:
-{"id":"string","title":"string","draft":boolean,"reviewed":boolean,"approved":boolean,"status":"approved|conditional|reviewed|draft|none","priority":"p0|p1|p2","module":"string","boAction":boolean,"note":"string","conditions":"string|null","url":"string"}
-
-Status rules:
-- "approved": all three checkboxes ticked OR BO explicitly approved in writing
-- "conditional": BO issued conditional approval with open conditions
-- "reviewed": Reviewed ticked, Approved not ticked
-- "draft": only Draft ticked
-- "none": no checkboxes ticked
-- priority: infer from content (p0 = customer-facing/critical path, p1 = important, p2 = lower)
-- module: short owner e.g. "MFC / Walczak", "HMI / Mikolaj"
-- boAction: true if BO (Marek Zuchowski) still needs to act
-- url: construct as https://www.notion.so/ + documentId (no dashes)
-- note: 1 sentence current status summary
-
-Return ALL documents found — if there are 18 IPs, return 18 items. JSON array only.`;
-
-  try {
-    const resp = await fetch('https://anthropic-proxy.zuchowski-marek.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: 'You are a JSON-only responder. Use the XQ-DocBase MCP tools to fetch the current status of each Implementation Plan document. After fetching, your ENTIRE response must be a single valid JSON array starting with [ and ending with ]. No prose, no explanation, no markdown — only the JSON array.',
-        messages: [{ role: 'user', content: userMsg }],
-        mcp_servers: [{
-          type: 'url',
-          url: 'https://xq-prototypes-production.up.railway.app/mcp',
-          name: 'XQ-DocBase'
-        }]
-      })
-    });
-
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error?.message || `API ${resp.status}`);
-
-    // Extract text from ALL content block types:
-    // - type=text: direct response text
-    // - type=mcp_tool_result: tool results may contain the final JSON
-    // Claude may put the JSON inside a tool_result block or after all tool calls
-    const allText = (data.content || []).map(b => {
-      if (b.type === 'text') return b.text || '';
-      if (b.type === 'mcp_tool_result') {
-        // tool result content is an array of blocks
-        return (b.content || []).map(c => c.text || '').join('');
-      }
-      return '';
-    }).join('\n');
-
-    // Find the JSON array — locate first [ and last ] to handle any wrapping
-    const start = allText.indexOf('[');
-    const end = allText.lastIndexOf(']');
-    if (start === -1 || end === -1 || end <= start) {
-      throw new Error('Response did not contain a JSON array. Raw: ' + allText.substring(0, 400));
-    }
-    const updates = JSON.parse(allText.substring(start, end + 1));
-    if (!Array.isArray(updates) || updates.length === 0) throw new Error('Empty array returned from API.');
-
-    let changed = 0;
-    // Build a map of existing IPs by ID for comparison
-    const existingById = Object.fromEntries(IPS.map(ip => [ip.id, ip]));
-
-    // Replace entire IPS array with live data — picks up new IPs automatically
-    IPS = updates.map(upd => {
-      const existing = existingById[upd.id];
-      const before = existing?.status;
-      if (before && before !== upd.status) changed++;
-      // Fill any missing fields from seed if present
-      return {
-        priority: existing?.priority || upd.priority || 'p2',
-        module: upd.module || existing?.module || '—',
-        url: upd.url || existing?.url || '',
-        conditions: upd.conditions || null,
-        ...upd,
-      };
-    });
-    // Count brand new IPs
-    const newIPs = updates.filter(upd => !existingById[upd.id]).length;
-
-    const now = new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
-    document.getElementById('lastUpdated').textContent = 'Live · ' + now;
-    const newMsg = newIPs > 0 ? ` · ${newIPs} new IP${newIPs!==1?'s':''} discovered` : '';
-    setStatus('ok', `DocBase refresh complete · ${updates.length} IPs found · ${changed} status change${changed!==1?'s':''} detected${newMsg}`);
-
-  } catch(err) {
-    setStatus('error', 'Refresh failed: ' + err.message);
-  }
-
-  btn.disabled = false;
-  renderAll();
-}
-
-function setStatus(type, msg) {
-  const bar = document.getElementById('statusBar');
-  if (type === 'loading') bar.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
-  else if (type === 'error') bar.innerHTML = `<span style="color:var(--red-dk)">⚠ ${msg}</span>`;
-  else bar.innerHTML = `<span style="color:var(--green-dk)">✓ ${msg}</span>`;
-}
-
-// ─── Render ───────────────────────────────────────────────────────────────
 const STATUS_ORDER = { approved:0, conditional:1, reviewed:2, draft:3, none:4 };
+
+function requestUpdate() {
+  if (typeof sendPrompt === 'function') {
+    sendPrompt('Please refresh the IP Approval Tracker with the latest data from XQ-DocBase and regenerate the HTML.');
+  } else {
+    alert('To refresh: open this page in Claude.ai and ask "Please refresh the IP Approval Tracker with latest data from XQ-DocBase".');
+  }
+}
 
 function pipeDot(done, label) {
   return `<div class="pdot ${done?'done':'pending'}">${done?'✓':label}</div>`;
@@ -305,8 +171,8 @@ function pipeHtml(ip) {
   </div>`;
 }
 function statusChip(s) {
-  const m = { approved:['approved','Approved'], conditional:['conditional','Conditional'], reviewed:['reviewed','Reviewed'], draft:['draft','Draft'], none:['none','Not started'] };
-  const [cls,lbl] = m[s]||['draft','Draft'];
+  const m={approved:['approved','Approved'],conditional:['conditional','Conditional'],reviewed:['reviewed','Reviewed'],draft:['draft','Draft'],none:['none','Not started']};
+  const [cls,lbl]=m[s]||['draft','Draft'];
   return `<span class="chip ${cls}">${lbl}</span>`;
 }
 function priLabel(p) {
@@ -323,20 +189,20 @@ function renderAll() {
 
 function renderTable() {
   const filtered = IPS
-    .filter(ip => currentFilter==='all' ? true : currentFilter==='action' ? ip.boAction : ip.status===currentFilter)
-    .sort((a,b) => {
+    .filter(ip => currentFilter==='all'?true:currentFilter==='action'?ip.boAction:ip.status===currentFilter)
+    .sort((a,b)=>{
       const pd={p0:0,p1:1,p2:2};
       const diff=(pd[a.priority]??2)-(pd[b.priority]??2);
-      return diff!==0 ? diff : (STATUS_ORDER[a.status]??3)-(STATUS_ORDER[b.status]??3);
+      return diff!==0?diff:(STATUS_ORDER[a.status]??3)-(STATUS_ORDER[b.status]??3);
     });
 
-  const tbody = document.getElementById('tbody');
-  tbody.innerHTML = '';
-  filtered.forEach(ip => {
-    const realIdx = IPS.indexOf(ip);
-    const tr = document.createElement('tr');
-    tr.className = 'clickable' + (ip.boAction?' highlight':'');
-    tr.innerHTML = `
+  const tbody=document.getElementById('tbody');
+  tbody.innerHTML='';
+  filtered.forEach(ip=>{
+    const realIdx=IPS.indexOf(ip);
+    const tr=document.createElement('tr');
+    tr.className='clickable'+(ip.boAction?' highlight':'');
+    tr.innerHTML=`
       <td onclick="toggleDrawer(${realIdx})">
         <div style="font-weight:500;font-size:11px;margin-bottom:2px">${ip.title}</div>
         ${ip.url?`<a href="${ip.url}" target="_blank" onclick="event.stopPropagation()">Open in Notion →</a>`:''}
@@ -348,33 +214,32 @@ function renderTable() {
       <td onclick="toggleDrawer(${realIdx})" style="font-size:10px;color:${ip.boAction?'var(--red-dk)':'var(--green)'}">${ip.boAction?'⚠ Needs action':'✓ OK'}</td>`;
     tbody.appendChild(tr);
   });
-  if (!filtered.length) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="6" style="text-align:center;color:var(--ink3);padding:1.5rem;font-size:11px">No items match this filter.</td>`;
+  if(!filtered.length){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td colspan="6" style="text-align:center;color:var(--ink3);padding:1.5rem;font-size:11px">No items match this filter.</td>`;
     tbody.appendChild(tr);
   }
 }
 
 function toggleDrawer(idx) {
-  const ip = IPS[idx];
-  const drawer = document.getElementById('drawer');
-  if (openIdx===idx) { drawer.classList.remove('open'); openIdx=null; return; }
-  openIdx = idx;
-  document.getElementById('d-title').textContent = ip.title;
-  const sLabels = {approved:'Approved (binding)',conditional:'Conditionally approved',reviewed:'Reviewed — awaiting approval',draft:'Draft',none:'Not started'};
-  document.getElementById('d-grid').innerHTML = `
+  const ip=IPS[idx];
+  const drawer=document.getElementById('drawer');
+  if(openIdx===idx){drawer.classList.remove('open');openIdx=null;return;}
+  openIdx=idx;
+  document.getElementById('d-title').textContent=ip.title;
+  const sLabels={approved:'Approved (binding)',conditional:'Conditionally approved',reviewed:'Reviewed — awaiting approval',draft:'Draft',none:'Not started'};
+  document.getElementById('d-grid').innerHTML=`
     <div class="d-cell"><div class="d-label">Status</div><div class="d-val">${sLabels[ip.status]||ip.status}</div></div>
     <div class="d-cell"><div class="d-label">Module owner</div><div class="d-val">${ip.module||'—'}</div></div>
     <div class="d-cell"><div class="d-label">BO action</div><div class="d-val" style="color:${ip.boAction?'var(--red)':'var(--green)'}">${ip.boAction?'Yes — needed':'None'}</div></div>
     ${ip.conditions?`<div class="d-cell" style="grid-column:1/-1"><div class="d-label">Open conditions</div><div class="d-val">${ip.conditions}</div></div>`:''}`;
-  document.getElementById('d-note').textContent = ip.note||'No notes.';
+  document.getElementById('d-note').textContent=ip.note||'No notes.';
   drawer.classList.add('open');
   drawer.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function setFilter(f, btn) {
-  currentFilter = f;
-  openIdx = null;
+function setFilter(f,btn) {
+  currentFilter=f;openIdx=null;
   document.getElementById('drawer').classList.remove('open');
   document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
