@@ -81,35 +81,8 @@ a{color:var(--blu);text-decoration:none;font-size:10px}a:hover{text-decoration:u
 </div>
 
 <script>
-const MCP_URL='https://xq-prototypes-production.up.railway.app/mcp';
-const SYSTEM=`You are a data extraction agent with access to XQ-DocBase MCP.
-
-Your ONLY task: call semantic_search ONCE with these exact parameters:
-  query: "plan status draft reviewed approved binding"
-  selectedOnly: true
-  limit: 30
-
-Then from the results, produce a JSON array of Implementation Plans.
-
-RULES:
-- Make exactly ONE tool call (semantic_search), then produce the JSON.
-- Include documents whose title contains "Implementation Plan" OR "BO-Approval" OR "BO Approval Statement".
-- Group BO-Approval docs with their matching plan. Use BO-Approval decision to determine true status.
-- Output ONLY a raw JSON array — no markdown, no backticks, no explanation.
-
-Each object:
-{"id":"<documentId of PLAN>","title":"<clean title>","status":"approved|conditional|reviewed|draft|none","priority":"p0|p1|p2","draft":true/false,"reviewed":true/false,"approved":true/false,"module":"<Module / Person>","boAction":true/false,"note":"<1-2 sentence>","conditions":"<string or null>"}
-
-Status from chunkPreview:
-- "[x] Approved (binding)" → "approved"
-- "[x] Reviewed" not Approved → "reviewed"
-- "[x] Draft" only → "draft"
-- No checkboxes → "none"
-- BO-Approval "Conditionally Approved" → "conditional"
-- BO-Approval "GO"/"Approved" → overrides to "approved"
-
-Priority: p0=Merck critical path, p1=important, p2=lower.
-boAction=true if BO hasn't given final approval.`;
+/* ── Cloudflare Worker URL: calls XQ-DocBase + Anthropic server-side ── */
+const API_PROXY='https://anthropic-proxy.zuchowski-marek.workers.dev';
 
 const CACHE_DATE='15.03.2026 19:30';
 const CACHE=[
@@ -201,17 +174,12 @@ async function fetchLive(){
   timer=setInterval(()=>{elapsed++;renderAll()},1000);
   try{
     const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('TIMEOUT')),150000));
-    const fetchPromise=fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,system:SYSTEM,
-        messages:[{role:'user',content:'Run semantic_search with selectedOnly:true now and return the IP status JSON array.'}],
-        mcp_servers:[{type:'url',url:MCP_URL,name:'XQ-DocBase'}]})
-    });
+    const fetchPromise=fetch(API_PROXY,{method:'POST'});
     const res=await Promise.race([fetchPromise,timeoutPromise]);
     if(!res.ok){const b=await res.text();throw new Error(`API ${res.status}: ${b.slice(0,300)}`)}
     const data=await res.json();const parsed=parseIPs(data.content);
     if(parsed&&parsed.length>3){ips=parsed;isLive=true}
-    else{const dbg=data.content.map(b=>`[${b.type}] ${(b.text||b.name||'').slice(0,80)}`).join(' | ');throw new Error(`Parsed ${parsed?parsed.length:0} IPs. ${dbg.slice(0,400)}`)}
+    else{const dbg=JSON.stringify(data).slice(0,400);throw new Error(`Parsed ${parsed?parsed.length:0} IPs. ${dbg}`)}
   }catch(err){lastError=err.message==='TIMEOUT'?'Timed out after 2.5 min.':err.message}
   finally{clearInterval(timer);loading=false;renderAll()}
 }
